@@ -15,11 +15,11 @@ $paginaAtiva  = $paginaAtiva  ?? '';
 $util         = utilizador_atual();
 
 $itensNav = [
-    'dashboard' => ['Painel', 'painel'],
-    'pedidos'   => ['Pedidos', 'carrinho'],
-    'mesas'     => ['Mesas', 'mesa'],
-    'ementa'    => ['Ementa', 'receita'],
-    'cozinha'   => ['Cozinha', 'cozinha'],
+    'gestao'   => ['Gestão', 'painel'],
+    'pedidos'  => ['Pedidos', 'carrinho'],
+    'mesas'    => ['Sala 2D', 'sala'],
+    'ementa'   => ['Ementa', 'receita'],
+    'cozinha'  => ['Cozinha', 'cozinha'],
 ];
 ?>
 <!DOCTYPE html>
@@ -31,7 +31,7 @@ $itensNav = [
 <link rel="stylesheet" href="<?= base_url() ?>/css/estilo.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><text y='19' font-size='20'>&#127860;</text></svg>">
 </head>
-<body<?= isset($autoRefresh) ? ' data-auto-refresh="' . (int) $autoRefresh . '"' : '' ?>>
+<body class="tema-gestao"<?= isset($autoRefresh) ? ' data-auto-refresh="' . (int) $autoRefresh . '"' : '' ?>>
 <div class="pagina">
 
     <header class="nav">
@@ -43,13 +43,16 @@ $itensNav = [
 
             <nav class="nav-links" id="navLinks">
                 <?php foreach ($itensNav as $chave => [$rotulo, $ic]): ?>
-                    <a href="<?= $chave ?>.php" class="<?= $paginaAtiva === $chave ? 'ativo' : '' ?>">
+                    <a href="<?= $chave === 'gestao' ? 'gestao' : $chave ?>.php" class="<?= $paginaAtiva === $chave ? 'ativo' : '' ?>">
                         <?= e($rotulo) ?>
                     </a>
                 <?php endforeach; ?>
             </nav>
 
             <div class="nav-util">
+                <a href="index.php" class="btn btn-fantasma btn-sm" title="Ver o site público do restaurante">
+                    <?= icone('olho', '', 15) ?> Site
+                </a>
                 <?php if (autenticado()): ?>
                     <div class="utilizador-chip">
                         <span class="avatar"><?= e(mb_strtoupper(mb_substr($util['nome'] ?? 'U', 0, 1))) ?></span>

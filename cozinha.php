@@ -40,7 +40,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'estado'
 
 /* ----------------------------- DADOS -------------------------------- */
 $pedidos = [];
-$r = $bd->query("SELECT p.id, p.total, p.estado, p.criado_em, m.numero AS mesa,
+$r = $bd->query("SELECT p.id, p.total, p.estado, p.criado_em, p.tipo_pedido, p.cliente_nome,
+                         m.numero AS mesa,
                          u.nome AS empregado,
                          (SELECT COUNT(*) FROM itens_pedido i WHERE i.pedido_id = p.id) AS nr_itens
                    FROM pedidos p
@@ -125,12 +126,17 @@ require_once __DIR__ . '/includes/cabecalho.php';
 
                 <div class="cab">
                     <div>
-                        <div class="mesa-tag">Mesa <?= (int) $p['mesa'] ?></div>
-                        <div class="tempo">#<?= (int) $p['id'] ?> · <?= e($p['empregado']) ?></div>
+                        <div class="mesa-tag">
+                            <?= $p['tipo_pedido'] === 'Takeaway' ? 'Balcão' : 'Mesa ' . (int) $p['mesa'] ?>
+                        </div>
+                        <div class="tempo">#<?= (int) $p['id'] ?> · <?= e((string) ($p['cliente_nome'] ?: $p['empregado'])) ?></div>
                     </div>
                     <div style="text-align:right">
                         <span class="etiqueta <?= classe_estado((string) $p['estado']) ?>"><span class="ponto"></span><?= e($p['estado']) ?></span>
                         <div class="tempo mt-1"><?= $min ?> min</div>
+                        <?php if ($p['tipo_pedido'] === 'Takeaway'): ?>
+                            <span class="etiqueta badge-takeaway mt-1"><?= icone('saco', '', 12) ?> Takeaway</span>
+                        <?php endif; ?>
                     </div>
                 </div>
 

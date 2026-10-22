@@ -394,6 +394,259 @@
         desenhar();
     }
 
+    /* ---------------------- CARRINHO PÚBLICO (site do cliente) -------- */
+
+    function initCarrinhoPublico() {
+        const lista  = document.getElementById('listaPublica');
+        if (!lista) return;
+
+        const btnFlutuante = document.getElementById('btnCarrinho');
+        const contador     = document.getElementById('contadorCarrinho');
+        const totalEl      = document.getElementById('publicoTotal');
+        const subEl        = document.getElementById('publicoSubtotal');
+        const gaveta       = document.getElementById('gavetaCarrinho');
+        const fundo        = document.getElementById('fundoCarrinho');
+        const fecharBtn    = document.getElementById('fecharCarrinho');
+        const enviarBtn    = document.getElementById('btnEnviarPublico');
+        const erroEl       = document.getElementById('publicoErro');
+        const blocoMesa    = document.getElementById('blocoMesa');
+
+        let itens = [];
+
+        function totalItens() {
+            return itens.reduce(function (a, i) { return a + i.qtd; }, 0);
+        }
+        function totalValor() {
+            return itens.reduce(function (a, i) { return a + (i.qtd * i.preco); }, 0);
+        }
+
+        function desenhar() {
+            lista.innerHTML = '';
+
+            if (!itens.length) {
+                lista.innerHTML = '<div class="vazio">'
+                    + svg('<circle cx="12" cy="12" r="9"/><path d="M8 12h8"/>', 34)
+                    + 'Ainda não adicionou nenhum prato.<br>Escolha na ementa acima.</div>';
+            } else {
+                itens.forEach(function (item, idx) {
+                    const li = document.createElement('li');
+                    li.className = 'linha-carrinho';
+                    li.setAttribute('data-idx', idx);
+                    li.innerHTML =
+                        '<div class="qtd">' +
+                            '<button type="button" data-acao="menos" title="Diminuir">' + svg(SVG_MENOS, 14) + '</button>' +
+                            '<span>' + item.qtd + '</span>' +
+                            '<button type="button" data-acao="mais" title="Aumentar">' + svg(SVG_MAIS, 14) + '</button>' +
+                        '</div>' +
+                        '<div class="info"><div class="nome"></div><div class="sub"></div></div>' +
+                        '<div class="preco">' + money(item.qtd * item.preco) + '</div>' +
+                        '<button type="button" class="btn btn-perigo btn-sm" data-acao="remover" title="Remover">' + svg(SVG_LIXO, 14) + '</button>';
+                    li.querySelector('.nome').textContent = item.nome;
+                    li.querySelector('.sub').textContent = money(item.preco) + ' / un.';
+                    lista.appendChild(li);
+                });
+            }
+
+            const qtd = totalItens();
+            const val = totalValor();
+            if (totalEl) totalEl.textContent = money(val);
+            if (subEl) subEl.textContent = money(val);
+            if (contador) contador.textContent = qtd;
+            if (btnFlutuante) btnFlutuante.classList.toggle('vazio', qtd === 0);
+            if (erroEl) { erroEl.textContent = ''; erroEl.className = 'erro-campo'; }
+        }
+
+        function abrir() {
+            if (gaveta) gaveta.classList.add('aberto');
+            if (fundo) fundo.classList.add('aberto');
+            document.body.style.overflow = 'hidden';
+        }
+        function fechar() {
+            if (gaveta) gaveta.classList.remove('aberto');
+            if (fundo) fundo.classList.remove('aberto');
+            document.body.style.overflow = '';
+        }
+
+        if (btnFlutuante) btnFlutuante.addEventListener('click', abrir);
+        if (fecharBtn) fecharBtn.addEventListener('click', fechar);
+        if (fundo) fundo.addEventListener('click', fechar);
+
+        // Adicionar itens a partir dos cartões da ementa
+        $$('[data-add]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                const id = parseInt(btn.getAttribute('data-add'), 10);
+                const nome = btn.getAttribute('data-nome');
+                const preco = parseFloat(btn.getAttribute('data-preco'));
+                const existente = itens.find(function (i) { return i.id === id; });
+                if (existente) {
+                    existente.qtd += 1;
+                } else {
+                    itens.push({ id: id, nome: nome, preco: preco, qtd: 1 });
+                }
+                desenhar();
+                // micro-interação no botão
+                btn.animate(
+                    [{ transform: 'scale(1)' }, { transform: 'scale(1.3)' }, { transform: 'scale(1)' }],
+                    { duration: 320, easing: 'cubic-bezier(.34,1.56,.64,1)' }
+                );
+                if (btnFlutuante) {
+                    btnFlutuante.animate(
+                        [{ transform: 'scale(1)' }, { transform: 'scale(1.12)' }, { transform: 'scale(1)' }],
+                        { duration: 320, easing: 'cubic-bezier(.34,1.56,.64,1)' }
+                    );
+                }
+            });
+        });
+
+        // Ações dentro do carrinho
+        lista.addEventListener('click', function (ev) {
+            const b = ev.target.closest('[data-acao]');
+            if (!b) return;
+            const li = b.closest('li[data-idx]');
+            if (!li) return;
+            const idx = Number(li.getAttribute('data-idx'));
+            const acao = b.getAttribute('data-acao');
+
+            if (acao === 'mais') { itens[idx].qtd += 1; desenhar(); }
+            else if (acao === 'menos') {
+                itens[idx].qtd -= 1;
+                if (itens[idx].qtd <= 0) {
+                    li.classList.add('sai');
+                    setTimeout(function () { itens.splice(idx, 1); desenhar(); }, 260);
+                } else { desenhar(); }
+            } else if (acao === 'remover') {
+                li.classList.add('sai');
+                setTimeout(function () { itens.splice(idx, 1); desenhar(); }, 260);
+            }
+        });
+
+        // Tipo de pedido (Takeaway / Na Mesa)
+        $$('.opcao-pedido').forEach(function (op) {
+            op.addEventListener('click', function () {
+                $$('.opcao-pedido').forEach(function (o) { o.classList.remove('selecionada'); });
+                op.classList.add('selecionada');
+                const takeaway = op.getAttribute('data-opcao') === 'takeaway';
+                if (blocoMesa) blocoMesa.classList.toggle('d-none', takeaway);
+            });
+        });
+
+        // Enviar pedido
+        if (enviarBtn) {
+            enviarBtn.addEventListener('click', function () {
+                if (!itens.length) {
+                    if (erroEl) { erroEl.textContent = 'Adicione pelo menos um prato.'; erroEl.className = 'erro-campo visivel'; }
+                    return;
+                }
+                const tipoRadio = document.querySelector('input[name="tipo_pedido"]:checked');
+                const tipo = tipoRadio ? tipoRadio.value : 'Takeaway';
+                const nome = (document.getElementById('clienteNome') || {}).value || '';
+                const tel = (document.getElementById('clienteTel') || {}).value || '';
+                const obs = (document.getElementById('clienteObs') || {}).value || '';
+                const selMesa = document.getElementById('mesaPublica');
+
+                if (nome.trim().length < 2) {
+                    if (erroEl) { erroEl.textContent = 'Indique o seu nome.'; erroEl.className = 'erro-campo visivel'; }
+                    return;
+                }
+                if (tipo === 'Na Mesa' && (!selMesa || !selMesa.value)) {
+                    if (erroEl) { erroEl.textContent = 'Escolha a mesa.'; erroEl.className = 'erro-campo visivel'; }
+                    return;
+                }
+
+                enviarBtn.disabled = true;
+                enviarBtn.textContent = 'A enviar...';
+
+                const corpo = {
+                    tipo: tipo,
+                    mesa_numero: selMesa ? selMesa.value : 0,
+                    nome: nome.trim(),
+                    telefone: tel.trim(),
+                    observacoes: obs.trim(),
+                    itens: itens.map(function (i) { return { id: i.id, quantidade: i.qtd }; })
+                };
+
+                fetch(basePath() + '/pedidos_publicos.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(corpo)
+                })
+                .then(function (r) { return r.json(); })
+                .then(function (res) {
+                    if (res && res.ok) {
+                        itens = [];
+                        desenhar();
+                        fechar();
+                        mostrarToast(res.mensagem || 'A cozinha já recebeu o seu pedido.', res.total);
+                    } else {
+                        if (erroEl) {
+                            erroEl.textContent = (res && res.erro) ? res.erro : 'Não foi possível enviar o pedido.';
+                            erroEl.className = 'erro-campo visivel';
+                        }
+                    }
+                    enviarBtn.disabled = false;
+                    enviarBtn.innerHTML = svg('<path d="M4 12.5 9 17.5 20 6.5"/>', 17) + ' Finalizar pedido';
+                })
+                .catch(function () {
+                    if (erroEl) {
+                        erroEl.textContent = 'Erro de comunicação com o servidor.';
+                        erroEl.className = 'erro-campo visivel';
+                    }
+                    enviarBtn.disabled = false;
+                    enviarBtn.innerHTML = svg('<path d="M4 12.5 9 17.5 20 6.5"/>', 17) + ' Finalizar pedido';
+                });
+            });
+        }
+
+        desenhar();
+    }
+
+    /* ---------------------- FILTRO DA EMENTA PÚBLICA --------------- */
+
+    function initFiltroPublico() {
+        const abas = document.querySelectorAll('#abasCategoria [data-categoria]');
+        if (!abas.length) return;
+
+        abas.forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                abas.forEach(function (b) { b.classList.remove('ativo'); });
+                btn.classList.add('ativo');
+                const cat = btn.getAttribute('data-categoria');
+                document.querySelectorAll('#grelhaPratos [data-categoria]').forEach(function (cartao) {
+                    const visivel = cat === 'todos' || cartao.getAttribute('data-categoria') === cat;
+                    cartao.style.display = visivel ? '' : 'none';
+                    if (visivel) {
+                        cartao.style.animation = 'none';
+                        void cartao.offsetWidth;
+                        cartao.style.animation = '';
+                    }
+                });
+            });
+        });
+
+        // Procura opcional dentro da ementa
+        const procura = document.getElementById('procuraPublica');
+        if (procura) {
+            procura.addEventListener('input', function () {
+                const termo = procura.value.trim().toLowerCase();
+                document.querySelectorAll('#grelhaPratos [data-pesquisa]').forEach(function (c) {
+                    c.style.display = (termo === '' || c.getAttribute('data-pesquisa').indexOf(termo) !== -1) ? '' : 'none';
+                });
+            });
+        }
+    }
+
+    /* ---------------------- TOAST (notificação) -------------------- */
+
+    function mostrarToast(texto, extra) {
+        const toast = document.getElementById('toastPedido');
+        if (!toast) return;
+        const t = document.getElementById('toastTexto');
+        if (t) t.textContent = texto + (extra ? ' · Total: ' + extra : '');
+        toast.classList.add('visivel');
+        setTimeout(function () { toast.classList.remove('visivel'); }, 5200);
+    }
+    window.saborproToast = mostrarToast;
+
     /* ---------------------- ATUALIZAÇÃO KDS -------------------- */
 
     function initAutoRefresh() {
@@ -419,6 +672,8 @@
         initMenu();
         initFiltro();
         initCarrinho();
+        initCarrinhoPublico();
+        initFiltroPublico();
         initAutoRefresh();
     });
 })();

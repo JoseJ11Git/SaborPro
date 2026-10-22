@@ -25,16 +25,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $descricao = trim($_POST['descricao'] ?? '');
         $preco     = (float) ($_POST['preco'] ?? 0);
         $disp      = isset($_POST['disponivel']) ? 1 : 0;
+        $destaque  = isset($_POST['destaque']) ? 1 : 0;
+        $etiquetas = trim($_POST['etiquetas'] ?? '');
 
         if ($nome === '' || $catId <= 0 || $preco <= 0) {
             $erro = 'Preencha nome, categoria e um preço válido.';
         } else {
             if ($id > 0) {
-                $stmt = $bd->prepare('UPDATE ementa SET nome=?, descricao=?, categoria_id=?, preco=?, disponivel=? WHERE id=?');
-                $stmt->bind_param('ssdsii', $nome, $descricao, $catId, $preco, $disp, $id);
+                $stmt = $bd->prepare('UPDATE ementa SET nome=?, descricao=?, categoria_id=?, preco=?, disponivel=?, destaque=?, etiquetas=? WHERE id=?');
+                $stmt->bind_param('ssdsiisi', $nome, $descricao, $catId, $preco, $disp, $destaque, $etiquetas, $id);
             } else {
-                $stmt = $bd->prepare('INSERT INTO ementa (nome, descricao, categoria_id, preco, disponivel) VALUES (?,?,?,?,?)');
-                $stmt->bind_param('ssdsi', $nome, $descricao, $catId, $preco, $disp);
+                $stmt = $bd->prepare('INSERT INTO ementa (nome, descricao, categoria_id, preco, disponivel, destaque, etiquetas) VALUES (?,?,?,?,?,?,?)');
+                $stmt->bind_param('ssdsisi', $nome, $descricao, $catId, $preco, $disp, $destaque, $etiquetas);
             }
             $stmt->execute();
             $stmt->close();
@@ -101,9 +103,10 @@ while ($c = $r->fetch_assoc()) {
 $r->free();
 
 $itens = [];
-$r = $bd->query("SELECT e.id, e.nome, e.descricao, e.preco, e.disponivel, e.categoria_id, c.nome AS categoria, c.icone_svg
+$r = $bd->query("SELECT e.id, e.nome, e.descricao, e.preco, e.disponivel, e.etiquetas, e.destaque,
+                        e.categoria_id, c.nome AS categoria, c.icone_svg
                    FROM ementa e JOIN categorias c ON c.id = e.categoria_id
-                  ORDER BY c.nome, e.nome");
+                  ORDER BY c.nome, e.destaque DESC, e.nome");
 while ($i = $r->fetch_assoc()) {
     $itens[] = $i;
 }
@@ -166,6 +169,14 @@ require_once __DIR__ . '/includes/cabecalho.php';
                     <td>
                         <div class="negrito"><?= e($it['nome']) ?></div>
                         <div class="pequeno texto-3"><?= e($it['descricao'] ?? '') ?></div>
+                        <div class="prato-tags mt-1">
+                            <?php if ((int) $it['destaque'] === 1): ?>
+                                <span class="tag tag-chef"><?= icone('estrela', '', 12) ?> Escolha do Chef</span>
+                            <?php endif; ?>
+                            <?php foreach (etiquetas_ementa($it['etiquetas']) as $et): ?>
+                                <span class="tag <?= classe_etiqueta($et) ?>"><?= e(rotulo_etiqueta($et)) ?></span>
+                            <?php endforeach; ?>
+                        </div>
                     </td>
                     <td><span class="etiqueta badge-neutro"><?= icone_categoria((string) $it['icone_svg']) ?> <?= e($it['categoria']) ?></span></td>
                     <td class="num negrito"><?= dinheiro((float) $it['preco']) ?></td>
@@ -192,6 +203,8 @@ require_once __DIR__ . '/includes/cabecalho.php';
                                     data-categoria="<?= (int) $it['categoria_id'] ?>"
                                     data-preco="<?= e((string) $it['preco']) ?>"
                                     data-disponivel="<?= (int) $it['disponivel'] ?>"
+                                    data-etiquetas="<?= e((string) ($it['etiquetas'] ?? '')) ?>"
+                                    data-destaque="<?= (int) $it['destaque'] ?>"
                                     title="Editar"><?= icone('edicao', '', 14) ?></button>
                             <form method="post" style="display:inline" onsubmit="return confirm('Eliminar este item da ementa?')">
                                 <input type="hidden" name="acao" value="eliminar_item">
@@ -243,9 +256,20 @@ require_once __DIR__ . '/includes/cabecalho.php';
                 </label>
             </div>
 
+            <label class="campo">
+                <span>Etiquetas (separadas por vírgula)</span>
+                <input type="text" name="etiquetas" id="itemEtiquetas" placeholder="vegetariano, novidade, chef">
+                <small class="texto-3">Opções: vegetariano, novidade, chef, picante, sem-gluten</small>
+            </label>
+
             <label class="checkbox mb-2">
                 <input type="checkbox" name="disponivel" id="itemDisponivel" checked>
                 Item disponível para pedido
+            </label>
+
+            <label class="checkbox mb-2">
+                <input type="checkbox" name="destaque" id="itemDestaque">
+                Marcar como escolha do chef
             </label>
 
             <div class="d-flex-wrap mt-2">
@@ -317,7 +341,9 @@ require_once __DIR__ . '/includes/cabecalho.php';
         desc: document.getElementById('itemDescricao'),
         cat: document.getElementById('itemCategoria'),
         preco: document.getElementById('itemPreco'),
-        disp: document.getElementById('itemDisponivel')
+        disp: document.getElementById('itemDisponivel'),
+        etiquetas: document.getElementById('itemEtiquetas'),
+        destaque: document.getElementById('itemDestaque')
     };
     var titulo = document.getElementById('tituloModalItem');
 
@@ -327,6 +353,8 @@ require_once __DIR__ . '/includes/cabecalho.php';
         f.desc.value = '';
         f.preco.value = '';
         f.disp.checked = true;
+        f.etiquetas.value = '';
+        f.destaque.checked = false;
         titulo.textContent = 'Novo item';
     }
 
@@ -342,6 +370,8 @@ require_once __DIR__ . '/includes/cabecalho.php';
             f.cat.value = btn.getAttribute('data-categoria');
             f.preco.value = btn.getAttribute('data-preco');
             f.disp.checked = btn.getAttribute('data-disponivel') === '1';
+            f.etiquetas.value = btn.getAttribute('data-etiquetas') || '';
+            f.destaque.checked = btn.getAttribute('data-destaque') === '1';
             titulo.textContent = 'Editar item';
             window.saborproAbrirModal('modalItem');
         });

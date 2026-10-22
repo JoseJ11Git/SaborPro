@@ -110,6 +110,59 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+/* ====================== COMPATIBILIDADE / MIGRAÇÕES =================== */
+
+/**
+ * Garante que as colunas extensíveis existem (migração idempotente).
+ * Executada uma única vez por pedido — mantém compatibilidade com
+ * bases de dados instaladas antes da refatorização.
+ */
+function saborpro_migrar(mysqli $bd): void
+{
+    static $feito = false;
+    if ($feito) {
+        return;
+    }
+    $feito = true;
+
+    $colunas = [
+        'ementa'  => [
+            'etiquetas' => "ADD COLUMN etiquetas VARCHAR(120) DEFAULT NULL AFTER disponivel",
+            'destaque'  => 'ADD COLUMN destaque TINYINT(1) NOT NULL DEFAULT 0 AFTER etiquetas',
+        ],
+        'pedidos' => [
+            'tipo_pedido'       => "ADD COLUMN tipo_pedido ENUM('Takeaway','Na Mesa') NOT NULL DEFAULT 'Na Mesa' AFTER estado",
+            'cliente_nome'      => 'ADD COLUMN cliente_nome VARCHAR(80) DEFAULT NULL AFTER tipo_pedido',
+            'cliente_telefone'  => 'ADD COLUMN cliente_telefone VARCHAR(30) DEFAULT NULL AFTER cliente_nome',
+            'observacoes'       => 'ADD COLUMN observacoes VARCHAR(255) DEFAULT NULL AFTER cliente_telefone',
+        ],
+    ];
+
+    foreach ($colunas as $tabela => $defs) {
+        $res = $bd->query("SHOW COLUMNS FROM `$tabela`");
+        $existentes = [];
+        while ($c = $res->fetch_assoc()) {
+            $existentes[] = $c['Field'];
+        }
+        $res->free();
+
+        foreach ($defs as $col => $sql) {
+            if (!in_array($col, $existentes, true)) {
+                $bd->query("ALTER TABLE `$tabela` $sql");
+            }
+        }
+    }
+
+    // Mesa "Balcão" (numero 0) para pedidos Takeaway do site público
+    $res = $bd->query("SELECT id FROM mesas WHERE numero = 0");
+    if (!$res->fetch_row()) {
+        $bd->query("INSERT INTO mesas (numero, capacidade, estado) VALUES (0, 1, 'Livre')");
+    }
+    $res->free();
+}
+
+saborpro_migrar($bd);
+
 /* ============================== HELPERS =============================== */
 
 /** Escapa texto para saída segura em HTML. */
@@ -199,5 +252,61 @@ function classe_mesa(string $estado): string
         'Ocupada'   => 'mesa-ocupada',
         'Reservada' => 'mesa-reservada',
         default     => 'mesa-livre',
+    };
+}
+
+/**
+ * Devolve a cor de destaque (variável CSS) de uma categoria.
+ * Entradas -> Laranja | Pratos -> Vermelho | Bebidas -> Azul | Sobremesas -> Dourado
+ */
+function cor_categoria(string $nome): string
+{
+    $n = mb_strtolower($nome);
+    return match (true) {
+        str_contains($n, 'entrada') => 'var(--cat-entradas)',
+        str_contains($n, 'prato') || str_contains($n, 'principal') => 'var(--cat-pratos)',
+        str_contains($n, 'bebida') || str_contains($n, 'bebido') => 'var(--cat-bebidas)',
+        str_contains($n, 'sobremesa') || str_contains($n, 'doce') => 'var(--cat-sobremesas)',
+        default => 'var(--cat-entradas)',
+    };
+}
+
+/**
+ * Converte a coluna `etiquetas` num array de etiquetas da ementa.
+ * Ex.: "vegetariano,novidade" -> ['vegetariano', 'novidade']
+ */
+function etiquetas_ementa(?string $etiquetas): array
+{
+    if (!$etiquetas) {
+        return [];
+    }
+    $lista = array_map('trim', explode(',', $etiquetas));
+    return array_values(array_filter($lista));
+}
+
+/** Rótulo bonito para uma etiqueta da ementa. */
+function rotulo_etiqueta(string $etiqueta): string
+{
+    return match ($etiqueta) {
+        'vegetariano' => 'Vegetariano',
+        'vegetariano ' => 'Vegetariano',
+        'novidade'    => 'Novidade',
+        'chef'        => 'Escolha do Chef',
+        'picante'     => 'Picante',
+        'sem-gluten'  => 'Sem Glúten',
+        default       => ucfirst($etiqueta),
+    };
+}
+
+/** Classe CSS da etiqueta da ementa (define a cor). */
+function classe_etiqueta(string $etiqueta): string
+{
+    return match ($etiqueta) {
+        'vegetariano' => 'tag-vegetariano',
+        'novidade'    => 'tag-novidade',
+        'chef'        => 'tag-chef',
+        'picante'     => 'tag-picante',
+        'sem-gluten'  => 'tag-sem-gluten',
+        default       => 'tag-neutra',
     };
 }

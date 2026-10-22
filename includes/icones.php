@@ -44,6 +44,25 @@ function icone(string $nome, string $classe = '', int $tamanho = 0): string
         'info'      => '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
         'relógio'   => '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
         'tenda-2'   => '<path d="M4 20h16"/><path d="M6 20V9l6-5 6 5v11"/><path d="M10 20v-6h4v6"/>',
+
+        /* ---- Ícones adicionais (site público / sala 2D) ---- */
+        'folha'      => '<path d="M4 20c9 1 16-4 16-14a5 5 0 0 0-5-5C8 1 4 6 4 13v7Z"/><path d="M4 20 14 10"/>',
+        'saco'       => '<path d="M6 7h12l-1 14H7Z"/><path d="M9 7a3 3 0 0 1 6 0"/><path d="M6 11h12"/>',
+        'talheres'   => '<path d="M7 3v7a2 2 0 0 0 4 0V3"/><path d="M9 10v11"/><path d="M16 3c-1.3 1.7-1.7 3.5-1.7 5.4 0 1.6.7 2.4 1.7 2.4s1.7-.8 1.7-2.4c0-1.9-.4-3.7-1.7-5.4Z"/><path d="M16 11v10"/>',
+        'pin'        => '<path d="M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11Z"/><circle cx="12" cy="10" r="2.6"/>',
+        'telefone'   => '<path d="M4 5c0-1 1-2 2-2h2l2 5-2.5 1.5a12 12 0 0 0 5 5L14 12l5 2v2c0 1-1 2-2 2A15 15 0 0 1 4 5Z"/>',
+        'email'      => '<rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m3.5 7 8.5 6 8.5-6"/>',
+        'balcao'     => '<path d="M3 10h18"/><path d="M5 10v9M19 10v9"/><path d="M3 10a9 9 0 0 1 18 0"/>',
+        'sala'       => '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8" cy="10" r="2"/><rect x="12" y="8" width="6" height="4" rx="1"/><circle cx="9" cy="16" r="2"/><rect x="13" y="15" width="5" height="3" rx="1"/>',
+        'janela'     => '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M12 3v18M4 12h16"/>',
+        'fogo'       => '<path d="M12 22c4 0 6-2.7 6-6 0-4.5-4-6.5-4-10 0 0-3 1.5-3 5 0-1.5-1-2.5-1-2.5S7 10 6 13.5C5.4 16 6 22 12 22Z"/>',
+        'seta-direita' => '<path d="M5 12h14"/><path d="m13 6 6 6-6 6"/>',
+        'buscar'     => '<circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/>',
+        'carrinho-mais' => '<path d="M3 4h2l2.2 11h10.6L20 7H6"/><circle cx="9" cy="19" r="1.6"/><circle cx="17" cy="19" r="1.6"/><path d="M17 12v6M14 15h6"/>',
+        'copo'       => '<path d="M6 3h12l-1.5 17a1.5 1.5 0 0 1-1.5 1.4H9A1.5 1.5 0 0 1 7.5 20Z"/><path d="M6 9h12"/>',
+        'terra'      => '<path d="M3 12h18"/><path d="M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18Z"/>',
+        'coracao'    => '<path d="M12 20s-7-4.4-7-9.3A4 4 0 0 1 12 8a4 4 0 0 1 7 2.7C19 15.6 12 20 12 20Z"/>',
+        'chave'      => '<circle cx="8" cy="15" r="4"/><path d="m11 12 8-8 2 2-2 2 2 2-2 2-2-2-2 2"/>',
     ];
 
     $conteudo = $caminhos[$nome] ?? $caminhos['prato'];
