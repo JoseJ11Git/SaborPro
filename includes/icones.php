@@ -1,0 +1,78 @@
+<?php
+/**
+ * SaborPro :: includes/icones.php
+ * ---------------------------------------------------------
+ * Ícones SVG 100% inline (sem bibliotecas externas).
+ * Uso: <?= icone('prato', 'classe-opcional') ?>
+ */
+
+declare(strict_types=1);
+
+function icone(string $nome, string $classe = '', int $tamanho = 0): string
+{
+    // Os traços usam currentColor para herdar a cor do contexto.
+    $caminhos = [
+        'prato'     => '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/>',
+        'entrada'   => '<path d="M4 13h16a8 8 0 0 1-16 0Z"/><path d="M12 13V5"/><path d="M9 5c0-1 1.5-1 3-1s3 0 3 1-1.5 1.5-3 1.5S9 6 9 5Z"/>',
+        'prato-almoco' => '<path d="M3 12h18"/><path d="M5 12a7 7 0 0 1 14 0Z"/><path d="M2 19h20"/>',
+        'doce'      => '<path d="M4 15h16a8 8 0 0 1-16 0Z"/><rect x="9" y="4" width="6" height="6" rx="1"/><path d="M12 10V7"/>',
+        'bebida'    => '<path d="M6 3h12l-1.5 17a1.5 1.5 0 0 1-1.5 1.4H9A1.5 1.5 0 0 1 7.5 20Z"/><path d="M6 9h12"/>',
+        'cafe'      => '<path d="M4 9h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5Z"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17"/><path d="M6 3v2M10 3v2M14 3v2"/>',
+        'mesa'      => '<path d="M3 10h18"/><path d="M5 10 3 21M19 10l2 11"/><path d="M12 10v11"/>',
+        'utilizadores' => '<circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M16 5.5a3 3 0 0 1 0 5"/><path d="M17.5 20a6 6 0 0 0-2.2-4.6"/>',
+        'carrinho'  => '<path d="M3 4h2l2.2 11h10.6L20 7H6"/><circle cx="9" cy="19" r="1.6"/><circle cx="17" cy="19" r="1.6"/>',
+        'painel'    => '<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>',
+        'cozinha'   => '<path d="M6 3v8a3 3 0 0 0 6 0V3"/><path d="M9 11v10"/><path d="M17 3c-1.5 2-2 4-2 6s.8 3 2 3 2-1 2-3-.5-4-2-6Z"/><path d="M17 12v9"/>',
+        'garfo'     => '<path d="M6 3v6a2 2 0 0 0 4 0V3"/><path d="M8 9v12"/><path d="M16 3c-1.2 1.6-1.6 3.4-1.6 5.2 0 1.6.7 2.3 1.6 2.3S17.6 9.8 17.6 8.2C17.6 6.4 17 4.6 16 3Z"/><path d="M16 10.5V21"/>',
+        'sair'      => '<path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 16l-4-4 4-4"/><path d="M6 12h11"/>',
+        'mais'      => '<path d="M12 5v14M5 12h14"/>',
+        'menos'     => '<path d="M5 12h14"/>',
+        'lixo'      => '<path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13"/>',
+        'x'         => '<path d="M6 6l12 12M18 6L6 18"/>',
+        'ok'        => '<path d="M4 12.5 9 17.5 20 6.5"/>',
+        'relogio'   => '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 2"/>',
+        'euro'      => '<path d="M18 6.5A7 7 0 1 0 18 17.5"/><path d="M4.5 10.5h9M4.5 13.5h9"/>',
+        'menu'      => '<path d="M4 7h16M4 12h16M4 17h16"/>',
+        'grelha'    => '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+        'receita'   => '<path d="M6 3h12v18l-6-3-6 3Z"/>',
+        'estrela'   => '<path d="m12 3 2.6 5.6 6 .8-4.4 4.2 1.1 6.1L12 16.8 6.7 19.7l1.1-6.1L3.4 9.4l6-.8Z"/>',
+        'tenda'     => '<path d="M3 10h18L12 3Z"/><path d="M5 10v10M19 10v10M9 20v-6h6v6"/>',
+        'olho'      => '<path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6Z"/><circle cx="12" cy="12" r="2.8"/>',
+        'procurar'  => '<circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/>',
+        'edicao'    => '<path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17Z"/><path d="M14.5 6.5 17.5 9.5"/>',
+        'alerta'    => '<path d="M12 4 2.5 20h19Z"/><path d="M12 10v4M12 17h.01"/>',
+        'info'      => '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
+        'relógio'   => '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+        'tenda-2'   => '<path d="M4 20h16"/><path d="M6 20V9l6-5 6 5v11"/><path d="M10 20v-6h4v6"/>',
+    ];
+
+    $conteudo = $caminhos[$nome] ?? $caminhos['prato'];
+
+    $atributos = '';
+    if ($classe !== '') {
+        $atributos .= ' class="' . htmlspecialchars($classe, ENT_QUOTES) . '"';
+    }
+    if ($tamanho > 0) {
+        $atributos .= ' width="' . $tamanho . '" height="' . $tamanho . '"';
+    }
+
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" '
+        . 'stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"'
+        . $atributos . '>' . $conteudo . '</svg>';
+}
+
+/**
+ * Converte o nome do ícone gravado na BD (categorias.icone_svg)
+ * para SVG inline.
+ */
+function icone_categoria(string $chave): string
+{
+    $mapa = [
+        'entrada' => 'entrada',
+        'prato'   => 'prato',
+        'doce'    => 'doce',
+        'bebida'  => 'bebida',
+        'cafe'    => 'cafe',
+    ];
+    return icone($mapa[$chave] ?? 'prato');
+}
