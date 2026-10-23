@@ -886,6 +886,147 @@
     }
     window.saborproToast = mostrarToast;
 
+    /* ---------------------- GESTÃO DE DADOS -------------------- */
+
+    function initGestaoDados() {
+        const base = window.saborproBase ? window.saborproBase() : '';
+
+        function pedido(url, dados, concluir) {
+            fetch(base + url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(dados)
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (res) { concluir(res); })
+            .catch(function () { concluir({ ok: false }); });
+        }
+
+        function toast(msg) {
+            if (window.saborproToast) window.saborproToast(msg);
+        }
+
+        function ajustarPendentes(delta) {
+            if (!delta) return;
+            document.querySelectorAll('[data-aval-pendentes]').forEach(function (el) {
+                const valor = Math.max(0, Number(el.textContent || 0) + delta);
+                el.textContent = String(valor);
+            });
+        }
+
+        /* Disponibilidade da ementa — grava imediatamente por AJAX */
+        document.querySelectorAll('[data-stock]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                const id = Number(btn.getAttribute('data-stock'));
+                const novo = btn.getAttribute('data-estado') === '1' ? 0 : 1;
+                btn.disabled = true;
+
+                pedido('/api/ementa_rapida.php', { id: id, campo: 'disponivel', valor: novo }, function (res) {
+                    btn.disabled = false;
+                    if (!res || !res.ok) {
+                        toast((res && res.erro) || 'Não foi possível actualizar a disponibilidade.');
+                        return;
+                    }
+
+                    btn.setAttribute('data-estado', String(novo));
+                    btn.setAttribute('aria-pressed', novo === 1 ? 'true' : 'false');
+                    btn.classList.toggle('ativo', novo === 1);
+
+                    const rotulo = btn.querySelector('[data-stock-rotulo]');
+                    if (rotulo) rotulo.textContent = novo === 1 ? 'Disponível' : 'Esgotado';
+
+                    toast(novo === 1 ? 'Item reposto em stock.' : 'Item marcado como esgotado.');
+                });
+            });
+        });
+
+        /* Moderação de avaliações — publicar / ocultar */
+        document.querySelectorAll('[data-aval-visivel]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                const id = Number(btn.getAttribute('data-aval-visivel'));
+                const antigo = btn.getAttribute('data-estado') === '1' ? 1 : 0;
+                const novo = antigo === 1 ? 0 : 1;
+                btn.disabled = true;
+
+                pedido('/api/avaliacao_admin.php', { id: id, acao: 'visivel', valor: novo }, function (res) {
+                    btn.disabled = false;
+                    if (!res || !res.ok) {
+                        toast((res && res.erro) || 'Não foi possível actualizar a avaliação.');
+                        return;
+                    }
+
+                    btn.setAttribute('data-estado', String(novo));
+                    btn.title = novo === 1 ? 'Ocultar do site' : 'Publicar no site';
+
+                    const acao = btn.querySelector('[data-aval-acao]');
+                    if (acao) acao.textContent = novo === 1 ? 'Ocultar' : 'Publicar';
+
+                    const linha = btn.closest('tr');
+                    const tag = linha ? linha.querySelector('[data-aval-estado]') : null;
+                    if (tag) {
+                        tag.className = 'etiqueta ' + (novo === 1 ? 'estado-pronto' : 'estado-pendente');
+                        tag.innerHTML = '<span class="ponto"></span>' + (novo === 1 ? 'Publicada' : 'Em moderação');
+                    }
+                    if (linha) linha.setAttribute('data-aval-visivel-estado', String(novo));
+
+                    ajustarPendentes(novo === 1 ? -1 : 1);
+                    toast(novo === 1 ? 'Avaliação publicada no site.' : 'Avaliação ocultada do site.');
+                });
+            });
+        });
+
+        /* Moderação de avaliações — eliminar */
+        document.querySelectorAll('[data-aval-eliminar]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                if (!window.confirm('Eliminar definitivamente esta avaliação?')) return;
+
+                const id = Number(btn.getAttribute('data-aval-eliminar'));
+                const linha = btn.closest('tr');
+                const eraPendente = linha && linha.getAttribute('data-aval-visivel-estado') === '0';
+                btn.disabled = true;
+
+                pedido('/api/avaliacao_admin.php', { id: id, acao: 'eliminar' }, function (res) {
+                    if (!res || !res.ok) {
+                        btn.disabled = false;
+                        toast((res && res.erro) || 'Não foi possível eliminar a avaliação.');
+                        return;
+                    }
+                    if (linha) linha.remove();
+                    if (eraPendente) ajustarPendentes(-1);
+                    toast('Avaliação eliminada.');
+                });
+            });
+        });
+    }
+
+    /* ---------------------- CTA DA EMENTA ----------------------- */
+
+    function initMenuCta() {
+        const btn = document.getElementById('menuRealizarPedido');
+        const resumo = document.getElementById('menuResumo');
+        if (!btn || !resumo) return;
+
+        btn.addEventListener('click', function (ev) {
+            ev.preventDefault();
+            const inicio = window.scrollY;
+            resumo.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            resumo.classList.remove('destacado');
+            void resumo.offsetWidth;
+            resumo.classList.add('destacado');
+            setTimeout(function () {
+                resumo.classList.remove('destacado');
+                // Fallback: alguns browsers/ambientes não animam o scroll suave.
+                if (Math.abs(window.scrollY - inicio) < 4) {
+                    const raiz = document.documentElement;
+                    const anterior = raiz.style.scrollBehavior;
+                    raiz.style.scrollBehavior = 'auto';
+                    resumo.scrollIntoView({ behavior: 'auto', block: 'start' });
+                    raiz.style.scrollBehavior = anterior;
+                }
+            }, 500);
+        });
+    }
+
     /* ---------------------- ATUALIZAÇÃO KDS -------------------- */
 
     function initAutoRefresh() {
@@ -981,6 +1122,10 @@
             menu_order_empty: 'Ainda não escolheu nenhum prato.',
             menu_order_sending: 'A enviar…',
             menu_order_note: 'Sem registo. O pedido entra directamente na cozinha.',
+            menu_cta_eyebrow: 'Pronto para a mesa?',
+            menu_cta_title: 'Faça o seu pedido',
+            menu_cta_sub: 'Escolha os pratos, indique a mesa ou takeaway e envie directamente para a cozinha.',
+            menu_cta_order: 'Realizar Pedido',
             rev_eyebrow: 'Avaliações', rev_title: 'Quem se senta à nossa mesa',
             rev_sub: 'Opiniões reais de quem já provou a nossa cozinha.',
             rev_count: 'Baseado em {n} avaliações', rev_cta: 'Deixar avaliação',
@@ -992,6 +1137,7 @@
             rev_form_comment_ph: 'Conte-nos como foi a sua experiência…',
             rev_form_note: 'A sua avaliação será publicada imediatamente no site.',
             rev_form_submit: 'Enviar avaliação',
+            rev_toast_title: 'Avaliação recebida', rev_toast_text: 'Obrigado pelo seu comentário.',
             contact_tagline: 'Cozinha de autor no centro do Porto. Almoço, jantar e brunch de domingo. Reservas para grupos e eventos privados.',
             contact_order: 'Pedir agora', contact_address: 'Morada',
             contact_address_note: 'A 5 min de São Bento', contact_contact: 'Contacto',
@@ -1040,6 +1186,10 @@
             menu_order_empty: 'You have not chosen any dish yet.',
             menu_order_sending: 'Sending…',
             menu_order_note: 'No account needed. Your order goes straight to the kitchen.',
+            menu_cta_eyebrow: 'Ready for your table?',
+            menu_cta_title: 'Place your order',
+            menu_cta_sub: 'Pick your dishes, choose a table or takeaway and send it straight to the kitchen.',
+            menu_cta_order: 'Place Order',
             rev_eyebrow: 'Reviews', rev_title: 'People at our table',
             rev_sub: 'Honest words from guests who have tasted our cooking.',
             rev_count: 'Based on {n} reviews', rev_cta: 'Leave a review',
@@ -1051,6 +1201,7 @@
             rev_form_comment_ph: 'Tell us about your experience…',
             rev_form_note: 'Your review will be published on the site immediately.',
             rev_form_submit: 'Send review',
+            rev_toast_title: 'Review received', rev_toast_text: 'Thank you for your feedback.',
             contact_tagline: 'Signature cuisine in the centre of Porto. Lunch, dinner and Sunday brunch. Reservations for groups and private events.',
             contact_order: 'Order now', contact_address: 'Address',
             contact_address_note: '5 min from São Bento', contact_contact: 'Contact',
@@ -1335,6 +1486,8 @@
         initMenuPedido();
         initFiltroPublico();
         initAvaliacao();
+        initGestaoDados();
+        initMenuCta();
         initImagensFallback();
         initAutoRefresh();
     });

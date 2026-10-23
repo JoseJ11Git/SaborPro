@@ -38,21 +38,26 @@ if ($id <= 0) {
     resposta(['ok' => false, 'erro' => 'Avaliação inválida.'], 400);
 }
 
-if ($acao === 'visivel') {
-    $valor = ((int) ($corpo['valor'] ?? 0)) === 1 ? 1 : 0;
-    $stmt = $bd->prepare('UPDATE avaliacoes SET visivel = ? WHERE id = ?');
-    $stmt->bind_param('ii', $valor, $id);
-    $stmt->execute();
-    $stmt->close();
-    resposta(['ok' => true, 'visivel' => $valor]);
-}
+try {
+    if ($acao === 'visivel') {
+        $valor = ((int) ($corpo['valor'] ?? 0)) === 1 ? 1 : 0;
+        $stmt = $bd->prepare('UPDATE avaliacoes SET visivel = ? WHERE id = ?');
+        $stmt->bind_param('ii', $valor, $id);
+        $stmt->execute();
+        $stmt->close();
+        resposta(['ok' => true, 'visivel' => $valor]);
+    }
 
-if ($acao === 'eliminar') {
-    $stmt = $bd->prepare('DELETE FROM avaliacoes WHERE id = ?');
-    $stmt->bind_param('i', $id);
-    $stmt->execute();
-    $stmt->close();
-    resposta(['ok' => true, 'eliminado' => true]);
+    if ($acao === 'eliminar') {
+        $stmt = $bd->prepare('DELETE FROM avaliacoes WHERE id = ?');
+        $stmt->bind_param('i', $id);
+        $stmt->execute();
+        $stmt->close();
+        resposta(['ok' => true, 'eliminado' => true]);
+    }
+} catch (Throwable $erro) {
+    error_log('SaborPro avaliacao_admin: ' . $erro->getMessage());
+    resposta(['ok' => false, 'erro' => 'Não foi possível concluir a operação.'], 500);
 }
 
 resposta(['ok' => false, 'erro' => 'Ação desconhecida.'], 400);

@@ -12,8 +12,8 @@ require_once __DIR__ . '/includes/icones.php';
 
 exigir_login();
 
-$paginaTitulo = 'Painel de Operações';
-$paginaAtiva  = 'gestao';
+$paginaTitulo = 'Dashboard';
+$paginaAtiva  = 'dashboard';
 $autoRefresh  = 90;
 $alertas = [];
 

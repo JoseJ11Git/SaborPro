@@ -57,6 +57,7 @@ function icone(string $nome, string $classe = '', int $tamanho = 0): string
         'janela'     => '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M12 3v18M4 12h16"/>',
         'fogo'       => '<path d="M12 22c4 0 6-2.7 6-6 0-4.5-4-6.5-4-10 0 0-3 1.5-3 5 0-1.5-1-2.5-1-2.5S7 10 6 13.5C5.4 16 6 22 12 22Z"/>',
         'seta-direita' => '<path d="M5 12h14"/><path d="m13 6 6 6-6 6"/>',
+        'seta-esquerda' => '<path d="M19 12H5"/><path d="m11 18-6-6 6-6"/>',
         'buscar'     => '<circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/>',
         'carrinho-mais' => '<path d="M3 4h2l2.2 11h10.6L20 7H6"/><circle cx="9" cy="19" r="1.6"/><circle cx="17" cy="19" r="1.6"/><path d="M17 12v6M14 15h6"/>',
         'copo'       => '<path d="M6 3h12l-1.5 17a1.5 1.5 0 0 1-1.5 1.4H9A1.5 1.5 0 0 1 7.5 20Z"/><path d="M6 9h12"/>',

@@ -13,36 +13,9 @@ require_once __DIR__ . '/ligacao.php';
 require_once __DIR__ . '/includes/icones.php';
 
 if (autenticado()) {
-    header('Location: gestao.php');
+    header('Location: dashboard.php');
     exit;
 }
-
-/* ----------------------------- DADOS ----------------------------- */
-$categorias = [];
-$r = $bd->query('SELECT id, nome, icone_svg FROM categorias ORDER BY id');
-while ($c = $r->fetch_assoc()) {
-    $c['cor'] = cor_categoria((string) $c['nome']);
-    $categorias[] = $c;
-}
-$r->free();
-
-$pratos = [];
-$r = $bd->query("SELECT e.id, e.nome, e.descricao, e.preco, e.etiquetas, e.destaque, e.imagem_url,
-                        e.categoria_id, c.nome AS categoria, c.icone_svg
-                   FROM ementa e JOIN categorias c ON c.id = e.categoria_id
-                  WHERE e.disponivel = 1
-                  ORDER BY c.id, e.destaque DESC, e.nome");
-while ($p = $r->fetch_assoc()) {
-    $pratos[] = $p;
-}
-$r->free();
-
-$mesas = [];
-$r = $bd->query('SELECT numero, capacidade FROM mesas WHERE numero > 0 ORDER BY numero');
-while ($m = $r->fetch_assoc()) {
-    $mesas[] = $m;
-}
-$r->free();
 
 /* -------------------------- AVALIAÇÕES --------------------------- */
 $avaliacoes = [];
@@ -88,10 +61,10 @@ $fotoCozinha  = 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=100
 
         <nav class="nav-links" id="navLinks">
             <a href="#inicio" class="ativo" data-i18n="nav_home">Início</a>
-            <a href="#historia" data-i18n="nav_story">A Nossa História</a>
             <a href="menu.php" data-i18n="nav_menu">Ementa</a>
+            <a href="#historia" data-i18n="nav_story">A Nossa História</a>
             <a href="#avaliacoes" data-i18n="nav_reviews">Avaliações</a>
-            <a href="#contacto" data-i18n="nav_contact">Contacto</a>
+            <a href="gestao.php" data-i18n="nav_admin">Acesso Reservado</a>
         </nav>
 
         <div class="nav-util">
@@ -100,10 +73,6 @@ $fotoCozinha  = 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=100
                 <span aria-hidden="true">|</span>
                 <button type="button" data-lang="en" aria-pressed="false">EN</button>
             </div>
-            <a href="gestao.php" class="btn btn-fantasma btn-sm nav-admin" title="Área reservada à equipa">
-                <?= icone('chave', '', 14) ?> <span data-i18n="nav_admin">Acesso Reservado</span>
-            </a>
-            <a href="#ementa" class="btn btn-primario btn-sm" data-i18n="nav_explore">Explorar Ementa</a>
             <button class="menu-hamburguer" id="btnMenu" aria-label="Abrir menu"><?= icone('menu') ?></button>
         </div>
     </div>
@@ -214,86 +183,6 @@ $fotoCozinha  = 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=100
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- ===================== EMENTA ===================== -->
-    <section class="seccao" id="ementa">
-        <div class="container">
-            <div class="seccao-cabecalho centro">
-                <span class="eyebrow" data-i18n="menu_eyebrow">Ementa da estação</span>
-                <h2 data-i18n="menu_title">Escolha, adicione e receba.</h2>
-                <p data-i18n="menu_sub">Pedido directo, sem criação de conta. Takeaway ou consumo na mesa.</p>
-            </div>
-
-            <div class="ementa-barra">
-                <div class="abas-categoria" id="abasCategoria">
-                    <button type="button" class="ativo" data-categoria="todos" data-i18n="menu_all">Tudo</button>
-                    <?php foreach ($categorias as $c): ?>
-                        <button type="button" data-categoria="<?= (int) $c['id'] ?>">
-                            <?= icone_categoria((string) $c['icone_svg']) ?> <span data-cat-nome="<?= e($c['nome']) ?>"><?= e($c['nome']) ?></span>
-                        </button>
-                    <?php endforeach; ?>
-                </div>
-
-                <div class="procura-publica">
-                    <?= icone('buscar') ?>
-                    <label class="sr-only" for="procuraPublica">Procurar prato</label>
-                    <input type="search" id="procuraPublica" placeholder="Procurar um prato…" data-i18n-placeholder="menu_search">
-                </div>
-            </div>
-
-            <div class="grelha g-auto" id="grelhaPratos">
-                <?php foreach ($pratos as $i => $p): ?>
-                    <article class="prato-cartao"
-                             data-categoria="<?= (int) $p['categoria_id'] ?>"
-                             data-pesquisa="<?= e(mb_strtolower($p['nome'] . ' ' . ($p['descricao'] ?? ''))) ?>"
-                             style="animation-delay:<?= $i * 0.045 ?>s">
-
-                        <div class="prato-foto">
-                            <img src="<?= e(imagem_prato($p['imagem_url'])) ?>"
-                                 alt="<?= e($p['nome']) ?>" loading="lazy">
-                            <?php if ((int) $p['destaque'] === 1): ?>
-                                <span class="tag-foto chef"><?= icone('estrela', '', 10) ?> <span data-i18n="menu_chef">Recomendação do Chef</span></span>
-                            <?php elseif (in_array('novidade', etiquetas_ementa($p['etiquetas']), true)): ?>
-                                <span class="tag-foto" data-i18n="menu_new">Novidade</span>
-                            <?php endif; ?>
-                            <span class="preco-foto"><?= dinheiro((float) $p['preco']) ?></span>
-                        </div>
-
-                        <div class="prato-corpo">
-                            <h3><?= e($p['nome']) ?></h3>
-                            <p class="prato-desc"><?= e($p['descricao']) ?></p>
-
-                            <div class="prato-tags">
-                                <?php foreach (etiquetas_ementa($p['etiquetas']) as $et): ?>
-                                    <?php if ($et === 'chef') { continue; } ?>
-                                    <span class="tag <?= classe_etiqueta($et) ?>">
-                                        <?= $et === 'vegetariano' ? icone('folha', '', 10) : '' ?>
-                                        <?= e(rotulo_etiqueta($et)) ?>
-                                    </span>
-                                <?php endforeach; ?>
-                            </div>
-
-                            <div class="prato-rodape">
-                                <span class="pequeno texto-3" data-cat-nome="<?= e($p['categoria']) ?>"><?= e($p['categoria']) ?></span>
-                                <button type="button" class="btn btn-fantasma btn-sm"
-                                        data-add="<?= (int) $p['id'] ?>"
-                                        data-nome="<?= e($p['nome']) ?>"
-                                        data-preco="<?= e((string) $p['preco']) ?>">
-                                    <?= icone('mais', '', 14) ?> <span data-i18n="menu_add">Adicionar</span>
-                                </button>
-                            </div>
-                        </div>
-                    </article>
-                <?php endforeach; ?>
-            </div>
-
-            <div class="texto-centro mt-3">
-                <a href="menu.php" class="btn btn-fantasma">
-                    <?= icone('seta-direita', '', 15) ?> <span data-i18n="menu_full_link">Ver ementa completa e pedir</span>
-                </a>
             </div>
         </div>
     </section>
@@ -409,88 +298,6 @@ $fotoCozinha  = 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=100
     </div>
 </footer>
 
-<!-- ===================== CARRINHO FLUTUANTE ===================== -->
-<button class="botao-carrinho-flutuante vazio" id="btnCarrinho" aria-label="Abrir carrinho">
-    <?= icone('carrinho') ?>
-    <span data-i18n="cart_btn">O meu pedido</span>
-    <span class="contador" id="contadorCarrinho">0</span>
-</button>
-
-<div class="gaveta-fundo" id="fundoCarrinho"></div>
-<aside class="gaveta-carrinho" id="gavetaCarrinho" aria-label="Carrinho de pedidos">
-    <div class="gaveta-cabecalho">
-        <h3 data-i18n="cart_title">O seu pedido</h3>
-        <button class="modal-fechar" id="fecharCarrinho" aria-label="Fechar"><?= icone('x') ?></button>
-    </div>
-
-    <div class="gaveta-corpo">
-        <ul class="carrinho-lista" id="listaPublica"></ul>
-
-        <div class="mt-3">
-            <p class="painel-titulo" data-i18n="cart_how">Como prefere receber?</p>
-            <div class="opcoes-pedido">
-                <label class="opcao-pedido selecionada" data-opcao="takeaway">
-                    <input type="radio" name="tipo_pedido" value="Takeaway" checked>
-                    <?= icone('saco') ?>
-                    <span>
-                        <span class="tit">Takeaway</span>
-                        <span class="desc" data-i18n="cart_takeaway_desc">Pronto em ~20 min</span>
-                    </span>
-                </label>
-                <label class="opcao-pedido" data-opcao="mesa">
-                    <input type="radio" name="tipo_pedido" value="Na Mesa">
-                    <?= icone('mesa') ?>
-                    <span>
-                        <span class="tit" data-i18n="cart_table">Na Mesa</span>
-                        <span class="desc" data-i18n="cart_table_desc">Consumir no restaurante</span>
-                    </span>
-                </label>
-            </div>
-
-            <label class="campo d-none" id="blocoMesa">
-                <span data-i18n="cart_select_table">Escolha a mesa</span>
-                <select name="mesa_numero" id="mesaPublica">
-                    <?php foreach ($mesas as $m): ?>
-                        <option value="<?= (int) $m['numero'] ?>"
-                                data-mesa="<?= (int) $m['numero'] ?>"
-                                data-lugares="<?= (int) $m['capacidade'] ?>">
-                            Mesa <?= (int) $m['numero'] ?> · <?= (int) $m['capacidade'] ?> lugares
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </label>
-
-            <div class="linha-campos">
-                <label class="campo">
-                    <span data-i18n="cart_name">O seu nome</span>
-                    <input type="text" id="clienteNome" placeholder="Nome" maxlength="80" data-i18n-placeholder="cart_name_ph">
-                </label>
-                <label class="campo">
-                    <span data-i18n="cart_phone">Telefone</span>
-                    <input type="tel" id="clienteTel" placeholder="912 345 678" maxlength="30">
-                </label>
-            </div>
-
-            <label class="campo">
-                <span data-i18n="cart_obs">Observações (opcional)</span>
-                <textarea id="clienteObs" placeholder="Alergias, pedido especial…" maxlength="255" data-i18n-placeholder="cart_obs_ph"></textarea>
-            </label>
-        </div>
-    </div>
-
-    <div class="gaveta-rodape">
-        <div class="totais">
-            <div class="linha"><span data-i18n="cart_subtotal">Subtotal</span><span id="publicoSubtotal">0,00 €</span></div>
-            <div class="linha"><span data-i18n="cart_vat">IVA (13%)</span><span data-i18n="cart_vat_included">incluído</span></div>
-            <div class="linha grande"><span data-i18n="cart_total">Total</span><span id="publicoTotal">0,00 €</span></div>
-        </div>
-        <div class="erro-campo" id="publicoErro"></div>
-        <button class="btn btn-primario btn-bloco btn-lg mt-1" id="btnEnviarPublico">
-            <?= icone('ok') ?> <span data-i18n="cart_finish">Finalizar pedido</span>
-        </button>
-    </div>
-</aside>
-
 <!-- ===================== MODAL DE AVALIAÇÃO ===================== -->
 <div class="modal" id="modalAvaliacao" role="dialog" aria-modal="true" aria-labelledby="tituloAvaliacao">
     <div class="modal-caixa">
@@ -542,8 +349,8 @@ $fotoCozinha  = 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=100
 <div class="toast" id="toastPedido">
     <span class="icone-toast"><?= icone('ok') ?></span>
     <span>
-        <strong data-i18n="toast_title">Pedido confirmado</strong>
-        <span id="toastTexto" data-i18n="toast_text">A cozinha já recebeu o seu pedido.</span>
+        <strong data-i18n="rev_toast_title">Avaliação recebida</strong>
+        <span id="toastTexto" data-i18n="rev_toast_text">Obrigado pelo seu comentário.</span>
     </span>
 </div>
 

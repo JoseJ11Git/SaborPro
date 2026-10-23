@@ -13,7 +13,7 @@ require_once __DIR__ . '/ligacao.php';
 require_once __DIR__ . '/includes/icones.php';
 
 if (autenticado()) {
-    header('Location: gestao.php');
+    header('Location: dashboard.php');
     exit;
 }
 
@@ -64,10 +64,10 @@ $r->free();
 
         <nav class="nav-links" id="navLinks">
             <a href="index.php" data-i18n="nav_home">Início</a>
-            <a href="index.php#historia" data-i18n="nav_story">A Nossa História</a>
             <a href="menu.php" class="ativo" data-i18n="nav_menu">Ementa</a>
+            <a href="index.php#historia" data-i18n="nav_story">A Nossa História</a>
             <a href="index.php#avaliacoes" data-i18n="nav_reviews">Avaliações</a>
-            <a href="index.php#contacto" data-i18n="nav_contact">Contacto</a>
+            <a href="gestao.php" data-i18n="nav_admin">Acesso Reservado</a>
         </nav>
 
         <div class="nav-util">
@@ -76,9 +76,6 @@ $r->free();
                 <span aria-hidden="true">|</span>
                 <button type="button" data-lang="en" aria-pressed="false">EN</button>
             </div>
-            <a href="gestao.php" class="btn btn-fantasma btn-sm nav-admin" title="Área reservada à equipa">
-                <?= icone('chave', '', 14) ?> <span data-i18n="nav_admin">Acesso Reservado</span>
-            </a>
             <button class="menu-hamburguer" id="btnMenu" aria-label="Abrir menu"><?= icone('menu') ?></button>
         </div>
     </div>
@@ -186,6 +183,19 @@ $r->free();
                             </div>
                         </article>
                     <?php endforeach; ?>
+                </div>
+
+                <!-- CTA final da ementa: leva ao resumo e à escolha de mesa/takeaway -->
+                <div class="menu-cta">
+                    <div class="menu-cta-texto">
+                        <span class="eyebrow" data-i18n="menu_cta_eyebrow">Pronto para a mesa?</span>
+                        <h2 data-i18n="menu_cta_title">Faça o seu pedido</h2>
+                        <p data-i18n="menu_cta_sub">Escolha os pratos, indique a mesa ou takeaway e envie directamente para a cozinha.</p>
+                    </div>
+                    <a href="#menuResumo" class="btn btn-primario btn-lg" id="menuRealizarPedido">
+                        <span data-i18n="menu_cta_order">Realizar Pedido</span>
+                        <?= icone('seta-direita', '', 17) ?>
+                    </a>
                 </div>
             </div>
 

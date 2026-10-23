@@ -2,7 +2,7 @@
 /**
  * SaborPro :: api/mesa.php
  * -------------------------------------------------------------
- * API JSON do simulador de planta de sala 2D.
+ * API JSON das mesas (vista de quadrados).
  *  GET  ?mesa=N            -> estado da mesa, pedido ativo e itens
  *  POST acao=adicionar     -> acrescenta item ao pedido ativo
  *  POST acao=fechar        -> fecha a conta (pedido Entregue, mesa Livre)

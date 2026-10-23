@@ -5,8 +5,8 @@
  * PAINEL TÉCNICO DE OPERAÇÕES (tema claro)
  *  · Métricas rápidas (faturação, ocupação, pendentes, ticket)
  *  · Monitor de pedidos do site com notificação visual
- *  · Controlo de ementa com preço editável e estado de stock
  *  · Últimas vendas + distribuição por estado
+ *  · Gráficos operacionais (sem CRUD de ementa nem moderação)
  */
 
 $util = utilizador_atual();
@@ -62,17 +62,7 @@ foreach ($pedidosSite as $ps) {
     }
 }
 
-/* -------------------------- CONTROLO DE EMENTA -------------------------- */
-$ementaControlo = [];
-$r = $bd->query("SELECT e.id, e.nome, e.preco, e.disponivel, c.nome AS categoria
-                   FROM ementa e JOIN categorias c ON c.id = e.categoria_id
-                  ORDER BY e.disponivel DESC, c.nome, e.nome");
-while ($x = $r->fetch_assoc()) {
-    $ementaControlo[] = $x;
-}
-$r->free();
-
-/* ----------------------------- ÚLTIMAS VENDAS ----------------------------- */
+/* -------------------------- ÚLTIMAS VENDAS ----------------------------- */
 $ultimasVendas = [];
 $r = $bd->query("SELECT p.id, p.total, p.estado, p.tipo_pedido, p.cliente_nome, p.criado_em,
                         m.numero AS mesa
@@ -141,27 +131,6 @@ $coresPratos = ['#D97706', '#991B1B', '#0284C7', '#059669', '#7C3AED'];
 $raioDonut   = 58;
 $circunferencia = 2 * M_PI * $raioDonut;
 $acumulado = 0.0;
-
-/* ------------------------- AVALIAÇÕES (gestão) ------------------------- */
-$avaliacoesAdmin = [];
-$r = $bd->query("SELECT id, nome_cliente, classificacao, comentario, criado_em, visivel
-                   FROM avaliacoes
-                  ORDER BY visivel ASC, criado_em DESC
-                  LIMIT 30");
-while ($x = $r->fetch_assoc()) {
-    $avaliacoesAdmin[] = $x;
-}
-$r->free();
-
-$r = $bd->query("SELECT COUNT(*) AS total, COALESCE(AVG(classificacao),0) AS media,
-                        SUM(visivel = 0) AS pendentes
-                   FROM avaliacoes");
-$resAval = $r->fetch_assoc();
-$r->free();
-
-$avalPendentes = (int) ($resAval['pendentes'] ?? 0);
-$avalTotal     = (int) ($resAval['total'] ?? 0);
-$avalMedia     = $avalTotal > 0 ? round((float) $resAval['media'], 1) : 0.0;
 ?>
 
 <!-- ===================== CABEÇALHO DO PAINEL ===================== -->
@@ -176,7 +145,8 @@ $avalMedia     = $avalTotal > 0 ? round((float) $resAval['media'], 1) : 0.0;
     </div>
     <div class="d-flex-wrap">
         <a href="pedidos.php" class="btn btn-primario"><?= icone('carrinho') ?> Novo pedido</a>
-        <a href="mesas.php" class="btn btn-fantasma"><?= icone('sala') ?> Planta da sala</a>
+        <a href="mesas.php" class="btn btn-fantasma"><?= icone('sala') ?> Mesas</a>
+        <a href="gestao_dados.php" class="btn btn-fantasma"><?= icone('receita') ?> Ementa &amp; Dados</a>
         <a href="cozinha.php" class="btn btn-fantasma"><?= icone('cozinha') ?> Cozinha</a>
     </div>
 </div>
@@ -229,8 +199,8 @@ $avalMedia     = $avalTotal > 0 ? round((float) $resAval['media'], 1) : 0.0;
     </div>
 </div>
 
-<!-- ===================== MONITOR + EMENTA ===================== -->
-<div class="grelha" style="grid-template-columns:1fr 1.35fr;align-items:start">
+<!-- ===================== MONITOR DE PEDIDOS ===================== -->
+<div class="grelha" style="grid-template-columns:1fr;align-items:start">
 
     <!-- Monitor de pedidos do site -->
     <div class="cartao">
@@ -296,58 +266,6 @@ $avalMedia     = $avalTotal > 0 ? round((float) $resAval['media'], 1) : 0.0;
                     </div>
                 </div>
             <?php endforeach; ?>
-        </div>
-    </div>
-
-    <!-- Controlo de ementa -->
-    <div class="cartao">
-        <div class="entre mb-2">
-            <div>
-                <h3 class="mb-0" style="font-size:.98rem">Controlo de ementa</h3>
-                <p class="pequeno texto-3 mb-0" style="margin:2px 0 0">Preço e stock editáveis em linha</p>
-            </div>
-            <a href="ementa.php" class="btn btn-fantasma btn-sm" style="margin-left:auto">Gerir tudo</a>
-        </div>
-
-        <div class="tabela-envolvente" style="border:0">
-            <table class="tabela tabela-compacta" style="min-width:480px">
-                <thead>
-                    <tr>
-                        <th>Prato</th>
-                        <th>Categoria</th>
-                        <th class="num">Preço</th>
-                        <th>Stock</th>
-                    </tr>
-                </thead>
-                <tbody>
-                <?php foreach ($ementaControlo as $item): ?>
-                    <tr data-item="<?= (int) $item['id'] ?>">
-                        <td>
-                            <div class="negrito" style="font-size:.82rem"><?= e($item['nome']) ?></div>
-                        </td>
-                        <td class="texto-3" style="font-size:.74rem"><?= e($item['categoria']) ?></td>
-                        <td class="num">
-                            <div class="controlo-linha" style="justify-content:flex-end">
-                                <input type="number" step="0.10" min="0.10"
-                                       value="<?= e(number_format((float) $item['preco'], 2, '.', '')) ?>"
-                                       data-preco="<?= (int) $item['id'] ?>"
-                                       aria-label="Preço de <?= e($item['nome']) ?>">
-                                <span class="texto-3" style="font-size:.72rem">€</span>
-                            </div>
-                        </td>
-                        <td>
-                            <button type="button"
-                                    class="stock-toggle <?= (int) $item['disponivel'] === 1 ? 'ativo' : '' ?>"
-                                    data-stock="<?= (int) $item['id'] ?>"
-                                    data-estado="<?= (int) $item['disponivel'] ?>">
-                                <span class="stock-interruptor"></span>
-                                <?= (int) $item['disponivel'] === 1 ? 'Disponível' : 'Esgotado' ?>
-                            </button>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-                </tbody>
-            </table>
         </div>
     </div>
 </div>
@@ -527,213 +445,3 @@ $avalMedia     = $avalTotal > 0 ? round((float) $resAval['media'], 1) : 0.0;
         <?php endif; ?>
     </div>
 </div>
-
-<!-- ===================== AVALIAÇÕES (MODERAÇÃO) ===================== -->
-<div class="cartao mt-2" id="painelAvaliacoes">
-    <div class="entre mb-2">
-        <div>
-            <h3 class="mb-0" style="font-size:.98rem">Avaliações dos clientes</h3>
-            <p class="pequeno texto-3 mb-0" style="margin:2px 0 0">
-                Modere o que é publicado no site público
-            </p>
-        </div>
-        <div class="d-flex-wrap" style="align-items:center">
-            <span class="etiqueta badge-neutro"><?= estrelas($avalMedia, 12) ?> <?= number_format($avalMedia, 1, ',', '.') ?></span>
-            <?php if ($avalPendentes > 0): ?>
-                <span class="etiqueta estado-pendente">
-                    <span class="ponto"></span><?= $avalPendentes ?> por moderar
-                </span>
-            <?php endif; ?>
-        </div>
-    </div>
-
-    <div class="tabela-envolvente" style="border:0">
-        <table class="tabela tabela-compacta" style="min-width:700px">
-            <thead>
-                <tr>
-                    <th>Cliente</th>
-                    <th>Nota</th>
-                    <th>Comentário</th>
-                    <th>Data</th>
-                    <th>Estado</th>
-                    <th class="num">Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-            <?php if (!$avaliacoesAdmin): ?>
-                <tr><td colspan="6" class="texto-centro texto-3" style="padding:24px">Ainda não existem avaliações.</td></tr>
-            <?php else: ?>
-                <?php foreach ($avaliacoesAdmin as $a): ?>
-                    <tr data-aval-id="<?= (int) $a['id'] ?>">
-                        <td>
-                            <div class="negrito" style="font-size:.82rem"><?= e($a['nome_cliente']) ?></div>
-                            <div class="texto-3" style="font-size:.7rem">#<?= (int) $a['id'] ?></div>
-                        </td>
-                        <td><?= estrelas((float) $a['classificacao'], 12) ?></td>
-                        <td style="max-width:340px">
-                            <div class="txt-corte-2" style="font-size:.8rem"><?= e($a['comentario']) ?></div>
-                        </td>
-                        <td class="texto-3" style="font-size:.74rem;white-space:nowrap">
-                            <?= date('d/m/Y H:i', strtotime((string) $a['criado_em'])) ?>
-                        </td>
-                        <td>
-                            <span class="etiqueta <?= (int) $a['visivel'] === 1 ? 'estado-pronto' : 'estado-pendente' ?>"
-                                  data-aval-estado>
-                                <span class="ponto"></span><?= (int) $a['visivel'] === 1 ? 'Publicada' : 'Em moderação' ?>
-                            </span>
-                        </td>
-                        <td class="num">
-                            <div style="display:flex;gap:6px;justify-content:flex-end">
-                                <button type="button" class="btn btn-fantasma btn-sm"
-                                        data-aval-visivel="<?= (int) $a['id'] ?>"
-                                        data-estado="<?= (int) $a['visivel'] ?>"
-                                        title="<?= (int) $a['visivel'] === 1 ? 'Ocultar do site' : 'Publicar no site' ?>">
-                                    <?= (int) $a['visivel'] === 1 ? icone('olho', '', 14) : icone('ok', '', 14) ?>
-                                    <?= (int) $a['visivel'] === 1 ? 'Ocultar' : 'Publicar' ?>
-                                </button>
-                                <button type="button" class="btn btn-perigo btn-sm"
-                                        data-aval-eliminar="<?= (int) $a['id'] ?>"
-                                        title="Eliminar avaliação">
-                                    <?= icone('lixo', '', 14) ?>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            <?php endif; ?>
-            </tbody>
-        </table>
-    </div>
-</div>
-
-<!-- ===================== EDIÇÃO RÁPIDA (JS) ===================== -->
-<script>
-(function () {
-    var base = window.saborproBase ? window.saborproBase() : '';
-
-    function guardar(id, campo, valor, concluir) {
-        fetch(base + '/api/ementa_rapida.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: id, campo: campo, valor: valor })
-        })
-        .then(function (r) { return r.json(); })
-        .then(function (res) { concluir(res); })
-        .catch(function () { concluir({ ok: false }); });
-    }
-
-    /* Actualização de preço ao sair do campo / Enter */
-    document.querySelectorAll('[data-preco]').forEach(function (input) {
-        var original = input.value;
-
-        function aplicar() {
-            var v = parseFloat(input.value);
-            if (isNaN(v) || v <= 0) { input.value = original; return; }
-            if (v === parseFloat(original)) return;
-
-            guardar(input.getAttribute('data-preco'), 'preco', v, function (res) {
-                if (res && res.ok) {
-                    original = v.toFixed(2);
-                    input.value = original;
-                    input.style.borderColor = '#059669';
-                    setTimeout(function () { input.style.borderColor = ''; }, 1200);
-                    if (window.saborproToast) window.saborproToast('Preço actualizado.', v.toFixed(2) + ' €');
-                } else {
-                    input.value = original;
-                    if (window.saborproToast) window.saborproToast('Não foi possível actualizar o preço.');
-                }
-            });
-        }
-
-        input.addEventListener('change', aplicar);
-        input.addEventListener('keydown', function (ev) {
-            if (ev.key === 'Enter') { ev.preventDefault(); input.blur(); }
-        });
-    });
-
-    /* Alternar stock */
-    document.querySelectorAll('[data-stock]').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            var novo = btn.getAttribute('data-estado') === '1' ? 0 : 1;
-            btn.disabled = true;
-            guardar(btn.getAttribute('data-stock'), 'disponivel', novo, function (res) {
-                btn.disabled = false;
-                if (!res || !res.ok) return;
-                btn.setAttribute('data-estado', String(novo));
-                btn.classList.toggle('ativo', novo === 1);
-                btn.lastChild.textContent = novo === 1 ? 'Disponível' : 'Esgotado';
-                if (window.saborproToast) {
-                    window.saborproToast(novo === 1 ? 'Item reposto em stock.' : 'Item marcado como esgotado.');
-                }
-            });
-        });
-    });
-})();
-
-/* ================= MODERAÇÃO DE AVALIAÇÕES ================= */
-(function () {
-    var base = window.saborproBase ? window.saborproBase() : '';
-
-    function pedido(dados, concluir) {
-        fetch(base + '/api/avaliacao_admin.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(dados)
-        })
-        .then(function (r) { return r.json(); })
-        .then(function (res) { concluir(res); })
-        .catch(function () { concluir({ ok: false }); });
-    }
-
-    document.querySelectorAll('[data-aval-visivel]').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            var id = btn.getAttribute('data-aval-visivel');
-            var novo = btn.getAttribute('data-estado') === '1' ? 0 : 1;
-            btn.disabled = true;
-
-            pedido({ id: Number(id), acao: 'visivel', valor: novo }, function (res) {
-                btn.disabled = false;
-                if (!res || !res.ok) {
-                    if (window.saborproToast) window.saborproToast('Não foi possível actualizar a avaliação.');
-                    return;
-                }
-
-                btn.setAttribute('data-estado', String(novo));
-                btn.textContent = novo === 1 ? 'Ocultar' : 'Publicar';
-                btn.title = novo === 1 ? 'Ocultar do site' : 'Publicar no site';
-
-                var linha = btn.closest('tr');
-                var tag = linha ? linha.querySelector('[data-aval-estado]') : null;
-                if (tag) {
-                    tag.className = 'etiqueta ' + (novo === 1 ? 'estado-pronto' : 'estado-pendente');
-                    tag.innerHTML = '<span class="ponto"></span>' + (novo === 1 ? 'Publicada' : 'Em moderação');
-                }
-
-                if (window.saborproToast) {
-                    window.saborproToast(novo === 1 ? 'Avaliação publicada no site.' : 'Avaliação ocultada do site.');
-                }
-            });
-        });
-    });
-
-    document.querySelectorAll('[data-aval-eliminar]').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            if (!window.confirm('Eliminar definitivamente esta avaliação?')) return;
-
-            var id = btn.getAttribute('data-aval-eliminar');
-            btn.disabled = true;
-
-            pedido({ id: Number(id), acao: 'eliminar' }, function (res) {
-                if (!res || !res.ok) {
-                    btn.disabled = false;
-                    if (window.saborproToast) window.saborproToast('Não foi possível eliminar a avaliação.');
-                    return;
-                }
-                var linha = btn.closest('tr');
-                if (linha) linha.remove();
-                if (window.saborproToast) window.saborproToast('Avaliação eliminada.');
-            });
-        });
-    });
-})();
-</script>

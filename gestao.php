@@ -36,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'login')
                 'email' => $u['email'],
                 'tipo'  => $u['tipo'],
             ];
-            header('Location: gestao.php');
+            header('Location: dashboard.php');
             exit;
         }
     }
@@ -75,15 +75,15 @@ if (!autenticado()) {
                         </span>
                         <h1 style="font-size:2.1rem;margin-bottom:14px">Operação do restaurante,<br>num só painel.</h1>
                         <p style="max-width:440px">
-                            Faturação em tempo real, ocupação da sala, pedidos do site e controlo
-                            de ementa — com uma planta de sala desenhada à escala.
+                            Faturação em tempo real, ocupação da sala, pedidos do site e gestão
+                            de ementa — com uma vista de mesas simples e directa.
                         </p>
 
                         <div class="grelha g-2 mt-3" style="max-width:430px">
                             <div class="cartao" style="padding:14px">
                                 <div class="icone-estat" style="width:32px;height:32px;border-radius:6px;display:grid;place-items:center;background:#EFF6FF;color:#1D4ED8;margin-bottom:8px"><?= icone('sala') ?></div>
-                                <div class="negrito" style="font-size:.84rem">Planta 2D</div>
-                                <div class="pequeno texto-3" style="font-size:.72rem">Mesas, cadeiras e balcão</div>
+                                <div class="negrito" style="font-size:.84rem">Mesas</div>
+                                <div class="pequeno texto-3" style="font-size:.72rem">Estados e consumo</div>
                             </div>
                             <div class="cartao" style="padding:14px">
                                 <div class="icone-estat" style="width:32px;height:32px;border-radius:6px;display:grid;place-items:center;background:#ECFDF5;color:#059669;margin-bottom:8px"><?= icone('cozinha') ?></div>
@@ -147,19 +147,8 @@ if (!autenticado()) {
     exit;
 }
 
-/* ===================== COM SESSÃO -> PAINEL ===================== */
-$paginaTitulo = 'Painel de Operações';
-$paginaAtiva  = 'gestao';
-$autoRefresh  = 90; // monitorização dos pedidos do site
-$alertas = [];
-
-if (($_GET['erro'] ?? '') === 'permissao') {
-    $alertas[] = ['aviso', 'Não tem permissão para aceder a essa área.'];
-}
-if (($_GET['msg'] ?? '') === 'sucesso') {
-    $alertas[] = ['ok', 'Operação concluída com sucesso.'];
-}
-
-require_once __DIR__ . '/includes/cabecalho.php';
-require_once __DIR__ . '/includes/painel_resumo.php';
-require_once __DIR__ . '/includes/rodape.php';
+/* ===================== COM SESSÃO -> DASHBOARD ===================== */
+/* O painel operacional vive em dashboard.php; esta página serve apenas
+   para autenticação. Assim evitam-se duas vistas duplicadas do painel. */
+header('Location: dashboard.php');
+exit;

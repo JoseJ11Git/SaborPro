@@ -6,7 +6,7 @@
  *
  * Variáveis opcionais:
  *  $paginaTitulo  -> título do documento
- *  $paginaAtiva   -> chave da página ativa (dashboard|mesas|ementa|pedidos|cozinha)
+ *  $paginaAtiva   -> chave da página ativa (dashboard|mesas|gestao_dados|pedidos|cozinha)
  */
 require_once __DIR__ . '/icones.php';
 
@@ -15,11 +15,11 @@ $paginaAtiva  = $paginaAtiva  ?? '';
 $util         = utilizador_atual();
 
 $itensNav = [
-    'gestao'   => ['Gestão', 'painel'],
-    'pedidos'  => ['Pedidos', 'carrinho'],
-    'mesas'    => ['Sala 2D', 'sala'],
-    'ementa'   => ['Ementa', 'receita'],
-    'cozinha'  => ['Cozinha', 'cozinha'],
+    'dashboard'    => ['Dashboard', 'painel'],
+    'pedidos'      => ['Pedidos', 'carrinho'],
+    'mesas'        => ['Mesas', 'sala'],
+    'gestao_dados' => ['Ementa & Dados', 'receita'],
+    'cozinha'      => ['Cozinha', 'cozinha'],
 ];
 ?>
 <!DOCTYPE html>
@@ -40,7 +40,7 @@ $itensNav = [
 
             <nav class="nav-links" id="navLinks">
                 <?php foreach ($itensNav as $chave => [$rotulo, $ic]): ?>
-                    <a href="<?= $chave === 'gestao' ? 'gestao' : $chave ?>.php" class="<?= $paginaAtiva === $chave ? 'ativo' : '' ?>">
+                    <a href="<?= $chave ?>.php" class="<?= $paginaAtiva === $chave ? 'ativo' : '' ?>">
                         <?= e($rotulo) ?>
                     </a>
                 <?php endforeach; ?>

@@ -8,7 +8,7 @@ A aplicação está dividida em **duas áreas com linguagens visuais distintas**
 | Área | Ficheiros | Tema | Acesso |
 |---|---|---|---|
 | 🍷 **Site público do restaurante** | `index.php`, `menu.php` | Claro de luxo — creme `#FAFAF9`, dourado `#D97706`, vinho `#991B1B` | Livre — encomendas sem registo |
-| 🖥️ **Portal de gestão** | `gestao.php`, `dashboard.php`, `mesas.php`, `ementa.php`, `pedidos.php`, `cozinha.php` | Técnico claro — `#F1F5F9`, cartões brancos, sombras finas | Sessão autenticada |
+| 🖥️ **Portal de gestão** | `gestao.php`, `dashboard.php`, `gestao_dados.php`, `mesas.php`, `pedidos.php`, `cozinha.php` | Técnico claro — `#F1F5F9`, cartões brancos, sombras finas | Sessão autenticada |
 
 ---
 
@@ -18,28 +18,29 @@ A aplicação está dividida em **duas áreas com linguagens visuais distintas**
 SaborPro/
 ├── base_dados.sql            # BD (utf8mb4) + 12 pratos + pedidos e avaliações de demonstração
 ├── ligacao.php               # MySQLi + sessão + helpers UTF-8 + migração idempotente
-├── index.php                 # SITE PÚBLICO: hero, história, ementa, avaliações, carrinho, PT/EN
+├── index.php                 # SITE PÚBLICO: hero, história, avaliações e PT/EN
 ├── menu.php                  # EMENTA DEDICADA (PT/EN) + pedido integrado (mesa ou takeaway)
-├── gestao.php                # PORTAL: login + painel de operações
-├── dashboard.php             # Atalho para o painel (mesmo conteúdo)
-├── mesas.php                 # VISTA ÚNICA "MESAS" — mesas de madeira, número e estado
-├── ementa.php                # CRUD de itens/categorias, etiquetas, destaque e fotografia
+├── gestao.php                # PORTAL: apenas login; redireciona para o dashboard
+├── dashboard.php             # DASHBOARD: vendas, métricas operacionais e gráficos
+├── gestao_dados.php          # CRUD da ementa/categorias + moderação de avaliações
+├── mesas.php                 # VISTA "MESAS" — quadrados castanhos, número e estado
+├── ementa.php                # Compatibilidade: redireciona para gestao_dados.php
 ├── pedidos.php               # POS interno (serviço de mesa)
 ├── cozinha.php               # KDS — ecrã da cozinha com avanço de estado em 1 clique
 ├── pedidos_publicos.php      # Endpoint JSON dos pedidos do site (sem login)
 ├── logout.php                # Encerramento seguro de sessão
 ├── api/
 │   ├── pedido.php            # Registo de pedidos do POS interno
-│   ├── mesa.php              # Planta 2D: detalhe, adicionar item, fechar conta, mudar estado
+│   ├── mesa.php              # Mesas: detalhe, adicionar item, fechar conta, mudar estado
 │   ├── avaliacao.php         # Submissão pública de avaliações (publicada imediatamente)
 │   ├── avaliacao_admin.php   # Moderação: publicar/ocultar e eliminar avaliações (sessão admin)
-│   └── ementa_rapida.php     # Edição rápida de preço/stock (JSON, usada no painel)
+│   └── ementa_rapida.php     # Edição rápida de preço/stock (JSON, usada em gestao_dados)
 ├── includes/
 │   ├── cabecalho.php         # Cabeçalho/nav do portal
 │   ├── rodape.php            # Rodapé do portal
-│   ├── painel_resumo.php     # Dashboard: KPIs, gráficos SVG, monitor de pedidos e avaliações
+│   ├── painel_resumo.php     # Dashboard: KPIs, gráficos SVG, monitor de pedidos
 │   └── icones.php            # Ícones SVG inline + logótipo SaborPro + estrelas
-├── css/estilo.css            # Design system com duas zonas de estilo + planta + gráficos
+├── css/estilo.css            # Design system com duas zonas de estilo + mesas + gráficos
 └── js/main.js                # Carrinhos, modais, PT/EN, avaliações, filtros, toast
 ```
 
@@ -65,14 +66,15 @@ com sombra de 1 px.
   *«Explorar Ementa»*; horário, morada e telefone em rodapé de hero.
 - **A Nossa História** — três fotografias reais (sala, cozinha, prato), texto editorial,
   assinatura da chef e indicadores (28 anos, 5 produtores, nota média real das avaliações).
-- **Ementa digital** — cartões com fotografia real (Unsplash), preço sobre a imagem,
-  selo *Recomendação do Chef*, etiquetas (`Vegetariano`, `Novidade`, `Sem Glúten`, `Picante`).
-  Filtros por categoria e pesquisa em tempo real.
-- **Página de ementa dedicada (`menu.php`)** — vista limpa e focada no cliente, com lista de
-  pratos, procura, filtros por categoria e um resumo de pedido sempre à vista:
+- **Navegação pública** na ordem `Início · Ementa · A Nossa História · Avaliações · Acesso Reservado`.
+- **Página de ementa dedicada (`menu.php`)** — a ementa existe apenas aqui, com design
+  editorial: lista de pratos, procura, filtros por categoria, fotografia, preço, etiquetas
+  e um resumo de pedido sempre à vista:
   - quantidades ajustáveis directamente em cada prato (stepper `− 0 +`);
   - **Na Mesa** (escolha do número da mesa) ou **Takeaway**;
   - nome, telefone e observações, totais e envio imediato para a cozinha;
+  - botão destacado **“Realizar Pedido”** no fim da ementa, que conduz ao resumo e à
+    escolha de mesa/takeaway;
   - nomes e descrições dos pratos totalmente bilingues (PT/EN), guardados em
     `ementa.nome_en` / `ementa.descricao_en`.
 - **Avaliações publicadas de imediato** — média em estrelas (ex.: `4,8/5`), cartões de testemunhos
@@ -81,41 +83,38 @@ com sombra de 1 px.
   e o contador; a equipa pode ocultá-la ou eliminá-la depois na gestão.
 - **Seletor de idioma PT | EN** no cabeçalho (JavaScript + `localStorage`), traduzindo as
   frases principais do site e, na ementa, também os **nomes e descrições de todos os pratos**.
-- **Carrinho flutuante** (gaveta lateral) **sem login**:
-  - Takeaway ou Na Mesa (com número da mesa);
-  - nome, telefone e observações;
-  - envio via `pedidos_publicos.php` → entra directamente na cozinha como `Pendente`;
-  - toast de confirmação com o total.
-- **Acesso Reservado** discreto no cabeçalho e no rodapé → `gestao.php`.
+- **Acesso Reservado** na navegação e no rodapé → `gestao.php` (login).
 
 As fotografias dos pratos vêm da coluna `ementa.imagem_url`. Se uma imagem falhar, o
 `js/main.js` substitui-a por um marcador SVG local — o layout nunca quebra offline.
 
 ## 4. Portal de gestão
 
-- `gestao.php` — ecrã de login em duas colunas (apresentação + cartão) e, após sessão, o painel.
-- **Painel de operações**
+- `gestao.php` — ecrã de login em duas colunas; após autenticação redireciona para `dashboard.php`.
+- **Dashboard (`dashboard.php`)** — exclusivamente vendas, métricas operacionais e gráficos:
   - KPIs: **Faturação do dia**, **Ocupação da sala (%)**, **Pedidos pendentes**, **Encomendas do site**;
-  - **Monitor de pedidos do site** com barra pulsante e destaque azul nos takeaway por confirmar;
-  - **Controlo de ementa** com preço editável em linha e interruptor de stock, gravando via
-    `api/ementa_rapida.php` (JSON) sem recarregar a página;
+  - **Monitor de pedidos do site** com barra pulsante e destaque nos takeaway por confirmar;
   - **Gráficos leves** desenhados apenas com CSS Grid/Flexbox e SVG puro:
     **barras** de pedidos acumulados por hora do dia e **roscas** para a ocupação da sala
     e a distribuição dos 5 pratos mais vendidos (últimos 30 dias);
-  - **Moderação de avaliações**: tabela com nota, comentário e estado; botões para
-    publicar/ocultar e eliminar, via `api/avaliacao_admin.php` (JSON);
-  - fluxo de pedidos por estado e últimas vendas;
-  - actualização automática a cada 90 s, suspensa enquanto edita um campo ou tem um modal aberto.
-- `mesas.php` — **vista única "Mesas"**, limpa e minimalista:
-  - fundo branco `#FFFFFF` com grelha de pontos muito subtil e sem divisões de zona
-    (foram removidas a varanda, o terraço, a cozinha, a entrada e o balcão);
-  - **mesas de madeira** desenhadas em SVG (gradiente + veios) com o **número bem visível**
-    ao centro e as cadeiras em tons de madeira;
-  - **indicador circular de estado** junto a cada mesa: 🟢 verde *Livre*, 🔴 vermelho *Ocupada*
-    (com pulsação) e 🟡 âmbar *Reservada*;
-  - total activo sobre a mesa quando existe conta aberta;
-  - clique abre a conta, permite adicionar pratos, alterar estado ou **fechar conta**.
-- `ementa.php` — CRUD completo com fotografia (URL + pré-visualização), etiquetas e destaque.
+  - fluxo de pedidos por estado, últimas vendas e actualização automática a cada 90 s.
+- **Ementa & Dados (`gestao_dados.php`)** — módulo dedicado ao CRUD e à moderação:
+  - itens da ementa com nome/descrição PT e EN, categoria, preço, etiquetas, destaque e fotografia;
+  - **interruptor de disponibilidade por AJAX** (`api/ementa_rapida.php`), com gravação
+    imediata na base de dados e actualização visual sem recarregar;
+  - gestão de categorias e ícones;
+  - moderação de avaliações: **publicar/ocultar** (`visivel = 1/0`) e eliminar, por AJAX
+    (`api/avaliacao_admin.php`), com contador de pendentes actualizado na hora.
+  - `ementa.php` mantém-se apenas como redireccionamento para este módulo.
+- **Mesas (`mesas.php`)** — desenho mínimo e uniforme:
+  - cada mesa é um **quadrado castanho-escuro** sobre fundo claro, sem cadeiras, lugares ou bancos;
+  - **número ao centro** e **indicador circular de estado**: verde *Livre*, vermelho *Ocupada*,
+    âmbar *Reservada*;
+  - clique abre um **modal simplificado** com estado actual, consumo e pedido activo;
+  - **alteração rápida** entre os 3 estados através de botões seleccionáveis;
+  - botão **“+ Adicionar Produtos”** revela a interface de adição de itens para essa mesa
+    (a lista não aparece de imediato no modal);
+  - fecho de conta e ligação directa ao POS.
 - `pedidos.php` — POS interno com filtro de categorias e carrinho.
 - `cozinha.php` — KDS com 1 clique: *Iniciar Preparação → Pronto → Servir/Entregar*.
 
@@ -163,7 +162,7 @@ Também pode forçar via `SABORPRO_DB_HOST`, `SABORPRO_DB_USER`, `SABORPRO_DB_PA
   escritos sem perda de caracteres.
 - Os preços dos pedidos são recalculados **no servidor** a partir da tabela `ementa`.
 - Senhas com `password_hash()` / `password_verify()`; `session_regenerate_id(true)` no login.
-- Ícones, logótipo, estrelas, planta de sala e gráficos: **SVG inline / CSS puro**,
+- Ícones, logótipo, estrelas, quadrados de mesas e gráficos: **SVG inline / CSS puro**,
   sem bibliotecas externas nem CDNs.
 - Única dependência externa: fotografias de pratos alojadas no Unsplash (`images.unsplash.com`).
   Todas as URLs do seed foram verificadas (`HTTP 200`, `image/jpeg`).
