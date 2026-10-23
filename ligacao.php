@@ -22,7 +22,8 @@ if (function_exists('mb_substitute_character')) {
 ini_set('default_charset', 'UTF-8');
 
 if (PHP_SAPI !== 'cli' && !headers_sent()) {
-    header('Content-Type: text/html; charset=utf-8');
+    $__api = defined('SABORPRO_API') && SABORPRO_API;
+    header('Content-Type: ' . ($__api ? 'application/json' : 'text/html') . '; charset=utf-8');
 }
 
 /* ============================ CONFIGURAÇÃO ============================ */
@@ -104,6 +105,15 @@ foreach ([(int) $__cfg['porta'], 3307, 3306] as $__porta) {
 
 if ($bd === null) {
     http_response_code(500);
+
+    if (defined('SABORPRO_API') && SABORPRO_API) {
+        echo json_encode([
+            'ok'   => false,
+            'erro' => 'Não foi possível ligar à base de dados.',
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
     die('<!DOCTYPE html><meta charset="utf-8"><title>SaborPro</title>'
         . '<body style="background:#0F172A;color:#F8FAFC;font-family:system-ui;padding:40px">'
         . '<h2 style="color:#EF4444">Não foi possível ligar à base de dados</h2>'

@@ -99,6 +99,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $nome  = trim($_POST['nome'] ?? '');
         $icone = trim($_POST['icone_svg'] ?? 'prato');
 
+        $icone = icone_categoria_chave($icone);
+
         if ($nome === '') {
             $erro = 'Indique o nome da categoria.';
         } else {
@@ -177,7 +179,7 @@ $avalPendentes = (int) ($resAval['pendentes'] ?? 0);
 $totalItens      = count($itens);
 $itensDisponiveis = count(array_filter($itens, fn($i) => (int) $i['disponivel'] === 1));
 
-$catIcons = ['entrada', 'prato', 'doce', 'bebida', 'cafe'];
+$catIcones = icones_categoria_opcoes();
 
 $paginaTitulo = 'Ementa & Dados';
 $paginaAtiva  = 'gestao_dados';
@@ -488,24 +490,31 @@ require_once __DIR__ . '/includes/cabecalho.php';
         <h3>Categorias</h3>
         <p class="sub-modal">Organize a ementa por categorias.</p>
 
-        <form method="post" class="mb-3" data-validar novalidate>
+        <form method="post" class="mb-3" id="formCategoria" data-validar novalidate>
             <input type="hidden" name="acao" value="guardar_categoria">
-            <input type="hidden" name="id" value="0">
-            <div class="linha-campos">
-                <label class="campo">
-                    <span>Nova categoria *</span>
-                    <input type="text" name="nome" required placeholder="Ex.: Entradas">
-                </label>
-                <label class="campo">
-                    <span>Ícone</span>
-                    <select name="icone_svg">
-                        <?php foreach ($catIcons as $ic): ?>
-                            <option value="<?= $ic ?>"><?= ucfirst($ic) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </label>
+            <input type="hidden" name="id" id="categoriaId" value="0">
+
+            <label class="campo">
+                <span>Nome da categoria *</span>
+                <input type="text" name="nome" id="categoriaNome" required placeholder="Ex.: Entradas">
+            </label>
+
+            <div class="campo mt-1" role="radiogroup" aria-label="Ícone da categoria">
+                <span>Ícone</span>
+                <div class="icone-opcoes">
+                    <?php foreach ($catIcones as $chave => $rotulo): ?>
+                        <label class="icone-opcao">
+                            <input type="radio" name="icone_svg" value="<?= e($chave) ?>" <?= $chave === 'prato' ? 'checked' : '' ?>>
+                            <span class="icone-opcao-visual"><?= icone_categoria($chave) ?></span>
+                            <span class="icone-opcao-rotulo"><?= e($rotulo) ?></span>
+                        </label>
+                    <?php endforeach; ?>
+                </div>
             </div>
-            <button type="submit" class="btn btn-primario"><?= icone('mais') ?> Adicionar categoria</button>
+
+            <button type="submit" class="btn btn-primario" id="btnGuardarCategoria">
+                <?= icone('mais') ?> <span id="btnGuardarCategoriaTexto">Adicionar categoria</span>
+            </button>
         </form>
 
         <div class="tabela-envolvente">
@@ -515,13 +524,27 @@ require_once __DIR__ . '/includes/cabecalho.php';
                 <?php foreach ($categorias as $c): ?>
                     <tr>
                         <td class="negrito"><?= e($c['nome']) ?></td>
-                        <td><?= icone_categoria((string) $c['icone_svg']) ?></td>
+                        <td>
+                            <span class="categoria-icone-celula" title="<?= e($c['nome']) ?>">
+                                <?= icone_categoria((string) $c['icone_svg']) ?>
+                            </span>
+                        </td>
                         <td class="num">
-                            <form method="post" style="display:inline" onsubmit="return confirm('Eliminar esta categoria e os seus itens?')">
-                                <input type="hidden" name="acao" value="eliminar_categoria">
-                                <input type="hidden" name="id" value="<?= (int) $c['id'] ?>">
-                                <button class="btn btn-perigo btn-sm"><?= icone('lixo', '', 14) ?></button>
-                            </form>
+                            <div style="display:flex;gap:6px;justify-content:flex-end">
+                                <button type="button" class="btn btn-fantasma btn-sm btn-editar-categoria"
+                                        data-modal-abrir="modalCategoria"
+                                        data-id="<?= (int) $c['id'] ?>"
+                                        data-nome="<?= e($c['nome']) ?>"
+                                        data-icone="<?= e(icone_categoria_chave((string) $c['icone_svg'])) ?>"
+                                        title="Editar categoria">
+                                    <?= icone('edicao', '', 14) ?>
+                                </button>
+                                <form method="post" style="display:inline" onsubmit="return confirm('Eliminar esta categoria e os seus itens?')">
+                                    <input type="hidden" name="acao" value="eliminar_categoria">
+                                    <input type="hidden" name="id" value="<?= (int) $c['id'] ?>">
+                                    <button class="btn btn-perigo btn-sm" title="Eliminar categoria"><?= icone('lixo', '', 14) ?></button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                 <?php endforeach; ?>
@@ -599,6 +622,43 @@ require_once __DIR__ . '/includes/cabecalho.php';
             window.saborproAbrirModal('modalItem');
         });
     });
+
+    /* ---- Categorias: criar / editar ícone ---- */
+    var formCategoria = document.getElementById('formCategoria');
+    if (formCategoria) {
+        var catId     = document.getElementById('categoriaId');
+        var catNome   = document.getElementById('categoriaNome');
+        var catBotao  = document.getElementById('btnGuardarCategoriaTexto');
+        var catRadios = formCategoria.querySelectorAll('input[name="icone_svg"]');
+
+        function escolherIcone(valor) {
+            var encontrado = false;
+            catRadios.forEach(function (radio) {
+                radio.checked = radio.value === valor;
+                if (radio.checked) encontrado = true;
+            });
+            if (!encontrado && catRadios.length) catRadios[0].checked = true;
+        }
+
+        function novaCategoria() {
+            catId.value = '0';
+            catNome.value = '';
+            escolherIcone('prato');
+            catBotao.textContent = 'Adicionar categoria';
+        }
+
+        var btnNovaCategoria = document.querySelector('.cabecalho-pagina [data-modal-abrir="modalCategoria"]');
+        if (btnNovaCategoria) btnNovaCategoria.addEventListener('click', novaCategoria);
+
+        document.querySelectorAll('.btn-editar-categoria').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                catId.value = btn.getAttribute('data-id') || '0';
+                catNome.value = btn.getAttribute('data-nome') || '';
+                escolherIcone(btn.getAttribute('data-icone') || 'prato');
+                catBotao.textContent = 'Guardar alterações';
+            });
+        });
+    }
 })();
 </script>
 

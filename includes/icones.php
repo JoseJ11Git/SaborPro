@@ -12,12 +12,13 @@ function icone(string $nome, string $classe = '', int $tamanho = 0): string
 {
     // Os traços usam currentColor para herdar a cor do contexto.
     $caminhos = [
-        'prato'     => '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/>',
-        'entrada'   => '<path d="M4 13h16a8 8 0 0 1-16 0Z"/><path d="M12 13V5"/><path d="M9 5c0-1 1.5-1 3-1s3 0 3 1-1.5 1.5-3 1.5S9 6 9 5Z"/>',
+        'prato'     => '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.5"/>',
+        'entrada'   => '<path d="M4 13h16a8 8 0 0 1-16 0Z"/><path d="M9 4c-.6.9-.6 1.7 0 2.6M13 3c-.6.9-.6 1.7 0 2.6"/>',
         'prato-almoco' => '<path d="M3 12h18"/><path d="M5 12a7 7 0 0 1 14 0Z"/><path d="M2 19h20"/>',
-        'doce'      => '<path d="M4 15h16a8 8 0 0 1-16 0Z"/><rect x="9" y="4" width="6" height="6" rx="1"/><path d="M12 10V7"/>',
-        'bebida'    => '<path d="M6 3h12l-1.5 17a1.5 1.5 0 0 1-1.5 1.4H9A1.5 1.5 0 0 1 7.5 20Z"/><path d="M6 9h12"/>',
-        'cafe'      => '<path d="M4 9h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5Z"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17"/><path d="M6 3v2M10 3v2M14 3v2"/>',
+        'doce'      => '<path d="M4 13h16l-1.5 6h-13Z"/><path d="M6 13a6 6 0 0 1 12 0"/><path d="M12 7V4"/><circle cx="12" cy="3" r="1"/>',
+        'bebida'    => '<path d="M7 4h10l-1 16H8Z"/><path d="M8 9h8"/><path d="M14 4 17 2"/>',
+        'cafe'      => '<path d="M4 9h12v4a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5Z"/><path d="M16 10h1.5a2.5 2.5 0 0 1 0 5H16"/><path d="M4 21h16"/><path d="M7 3v2M11 3v2"/>',
+        'acompanhamento' => '<path d="M12 21c-5.5 0-8.5-3-8.5-8 5.5 0 8.5 3 8.5 8Z"/><path d="M12 21c5.5 0 8.5-3 8.5-8-5.5 0-8.5 3-8.5 8Z"/><path d="M12 21V11"/>',
         'mesa'      => '<path d="M3 10h18"/><path d="M5 10 3 21M19 10l2 11"/><path d="M12 10v11"/>',
         'utilizadores' => '<circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M16 5.5a3 3 0 0 1 0 5"/><path d="M17.5 20a6 6 0 0 0-2.2-4.6"/>',
         'carrinho'  => '<path d="M3 4h2l2.2 11h10.6L20 7H6"/><circle cx="9" cy="19" r="1.6"/><circle cx="17" cy="19" r="1.6"/>',
@@ -82,19 +83,60 @@ function icone(string $nome, string $classe = '', int $tamanho = 0): string
 }
 
 /**
+ * Colecção de ícones de categoria disponível no formulário de gestão.
+ * A chave é gravada em categorias.icone_svg; o valor é o rótulo humano.
+ */
+function icones_categoria_opcoes(): array
+{
+    return [
+        'entrada'        => 'Entradas',
+        'prato'          => 'Pratos Principais',
+        'doce'           => 'Sobremesas',
+        'bebida'         => 'Bebidas',
+        'cafe'           => 'Cafés',
+        'acompanhamento' => 'Acompanhamentos',
+    ];
+}
+
+/**
+ * Normaliza o valor gravado em categorias.icone_svg para uma chave
+ * canónica da colecção. Aceita nomes antigos/plurais e valores inválidos.
+ */
+function icone_categoria_chave(string $chave): string
+{
+    $mapa = [
+        'entrada'           => 'entrada',
+        'entradas'          => 'entrada',
+        'prato'             => 'prato',
+        'pratos'            => 'prato',
+        'prato-principal'   => 'prato',
+        'pratos-principais' => 'prato',
+        'principal'         => 'prato',
+        'prato-almoco'      => 'prato',
+        'doce'              => 'doce',
+        'doces'             => 'doce',
+        'sobremesa'         => 'doce',
+        'sobremesas'        => 'doce',
+        'bebida'            => 'bebida',
+        'bebidas'           => 'bebida',
+        'copo'              => 'bebida',
+        'cafe'              => 'cafe',
+        'cafes'             => 'cafe',
+        'acompanhamento'    => 'acompanhamento',
+        'acompanhamentos'   => 'acompanhamento',
+    ];
+
+    $normalizada = strtolower(trim($chave));
+    return $mapa[$normalizada] ?? 'prato';
+}
+
+/**
  * Converte o nome do ícone gravado na BD (categorias.icone_svg)
- * para SVG inline.
+ * para SVG inline com a classe de tamanho controlado.
  */
 function icone_categoria(string $chave): string
 {
-    $mapa = [
-        'entrada' => 'entrada',
-        'prato'   => 'prato',
-        'doce'    => 'doce',
-        'bebida'  => 'bebida',
-        'cafe'    => 'cafe',
-    ];
-    return icone($mapa[$chave] ?? 'prato');
+    return icone(icone_categoria_chave($chave), 'icone-categoria');
 }
 
 /**

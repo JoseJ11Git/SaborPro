@@ -28,6 +28,10 @@ $itensNav = [
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= e($paginaTitulo) ?> · SaborPro</title>
+<script>
+/* URL base calculada pelo PHP: funciona na raiz ou em subpastas (ex.: /SaborPro/). */
+window.SABORPRO_BASE_URL = <?= json_encode(base_url(), JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+</script>
 <link rel="stylesheet" href="<?= base_url() ?>/css/estilo.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><text y='19' font-size='20'>&#127860;</text></svg>">
 </head>

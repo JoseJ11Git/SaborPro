@@ -10,16 +10,26 @@
  */
 declare(strict_types=1);
 
+/* Permite que ligacao.php devolva JSON (e não HTML) se a BD falhar. */
+define('SABORPRO_API', true);
+
 require_once __DIR__ . '/../ligacao.php';
 
 header('Content-Type: application/json; charset=utf-8');
+header('X-Content-Type-Options: nosniff');
 
 function resposta(array $dados, int $codigo = 200): void
 {
     http_response_code($codigo);
-    echo json_encode($dados, JSON_UNESCAPED_UNICODE);
+    echo json_encode($dados, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     exit;
 }
+
+/* Qualquer excepção não tratada continua a devolver JSON válido. */
+set_exception_handler(function (Throwable $e): void {
+    error_log('SaborPro api/mesa: ' . $e->getMessage());
+    resposta(['ok' => false, 'erro' => 'Erro interno ao processar a mesa.'], 500);
+});
 
 if (!autenticado()) {
     resposta(['ok' => false, 'erro' => 'Sessão inválida.'], 401);
@@ -113,11 +123,23 @@ if ($acao === 'estado') {
     if (!in_array($novoEst, ['Livre', 'Ocupada', 'Reservada'], true)) {
         resposta(['ok' => false, 'erro' => 'Estado inválido.'], 400);
     }
+
+    $stmt = $bd->prepare('SELECT id FROM mesas WHERE id = ? LIMIT 1');
+    $stmt->bind_param('i', $mesaId);
+    $stmt->execute();
+    $existe = $stmt->get_result()->fetch_row();
+    $stmt->close();
+
+    if (!$existe) {
+        resposta(['ok' => false, 'erro' => 'Mesa inexistente.'], 404);
+    }
+
     $stmt = $bd->prepare('UPDATE mesas SET estado = ? WHERE id = ?');
     $stmt->bind_param('si', $novoEst, $mesaId);
     $stmt->execute();
     $stmt->close();
-    resposta(['ok' => true, 'estado' => $novoEst]);
+
+    resposta(['ok' => true, 'mesa' => $mesaId, 'estado' => $novoEst]);
     exit;
 }
 

@@ -197,7 +197,13 @@ require_once __DIR__ . '/includes/cabecalho.php';
 (function () {
     'use strict';
 
-    var base = window.saborproBase ? window.saborproBase() : '';
+    /* A base é injectada pelo PHP no <head>. O fallback cobre qualquer
+       inclusão directa e resolve correctamente subpastas (/SaborPro/…). */
+    var base = (typeof window.SABORPRO_BASE_URL === 'string')
+        ? window.SABORPRO_BASE_URL.replace(/\/+$/, '')
+        : window.location.pathname.replace(/\/[^/]*$/, '').replace(/\/+$/, '');
+    var apiMesa = base + '/api/mesa.php';
+
     var grelha = document.getElementById('grelhaMesas');
     var modal = document.getElementById('modalMesa');
     if (!grelha || !modal) return;
@@ -239,15 +245,29 @@ require_once __DIR__ . '/includes/cabecalho.php';
         return grelha.querySelector('[data-mesa-id="' + id + '"]');
     }
 
+    function lerJson(resposta) {
+        var tipo = resposta.headers.get('content-type') || '';
+        if (tipo.indexOf('application/json') === -1) {
+            throw new Error('O servidor devolveu uma resposta inválida.');
+        }
+        return resposta.json();
+    }
+
     function pedir(dados, concluir) {
-        fetch(base + '/api/mesa.php', {
+        fetch(apiMesa, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
             body: JSON.stringify(dados)
         })
-        .then(function (r) { return r.json(); })
+        .then(lerJson)
         .then(function (res) { concluir(res); })
-        .catch(function () { concluir({ ok: false, erro: 'Sem ligação ao servidor.' }); });
+        .catch(function (erro) {
+            concluir({
+                ok: false,
+                erro: erro && erro.message ? erro.message : 'Sem ligação ao servidor.'
+            });
+        });
     }
 
     function actualizarContagens(estadoAntigo, estadoNovo) {
@@ -292,17 +312,26 @@ require_once __DIR__ . '/includes/cabecalho.php';
 
         if (window.saborproAbrirModal) window.saborproAbrirModal('modalMesa');
 
-        fetch(base + '/api/mesa.php?mesa=' + encodeURIComponent(id))
-            .then(function (r) { return r.json(); })
+        fetch(apiMesa + '?mesa=' + encodeURIComponent(id), {
+            credentials: 'same-origin',
+            headers: { 'Accept': 'application/json' }
+        })
+            .then(lerJson)
             .then(function (res) {
-                if (!res || !res.ok || !res.mesa) return;
+                if (!res || !res.ok || !res.mesa) {
+                    throw new Error((res && res.erro) || 'Não foi possível carregar a mesa.');
+                }
                 var totalApi = res.pedido ? Number(res.pedido.total) : 0;
                 el.setAttribute('data-mesa-total', totalApi.toFixed(2));
                 el.setAttribute('data-mesa-pedido', res.pedido ? res.pedido.id : 0);
                 pintarQuadrado(el, res.mesa.estado);
                 pintarModal(res.mesa.estado, totalApi, res.mesa.numero);
             })
-            .catch(function () {});
+            .catch(function (erro) {
+                if (window.saborproToast) {
+                    window.saborproToast((erro && erro.message) || 'Não foi possível carregar a mesa.');
+                }
+            });
     }
 
     grelha.addEventListener('click', function (ev) {

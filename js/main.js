@@ -1049,6 +1049,10 @@
     /* ---------------------- BASE PATH -------------------------- */
 
     function basePath() {
+        // O PHP injecta a base real no <head> (funciona em raiz e subpastas).
+        if (typeof window.SABORPRO_BASE_URL === 'string') {
+            return window.SABORPRO_BASE_URL.replace(/\/+$/, '');
+        }
         const dir = window.location.pathname.replace(/\\/g, '/').replace(/\/[^/]*$/, '');
         return dir === '/' ? '' : dir;
     }

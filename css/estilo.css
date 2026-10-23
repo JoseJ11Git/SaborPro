@@ -1658,3 +1658,125 @@ select { cursor: pointer; }
     .mesa-estados-botoes { grid-template-columns: 1fr; }
     .mesa-estado-btn { justify-content: flex-start; padding-left: 13px; }
 }
+
+/* ============================================================
+   ÍCONES DE CATEGORIA — tamanho estrito + colecção dourada
+   ============================================================ */
+.icone-categoria {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    max-width: 32px;
+    max-height: 32px;
+    object-fit: contain;
+    display: inline-block;
+    flex: none;
+    color: var(--primario-escuro, #B45309);
+    vertical-align: middle;
+}
+
+/* Em etiquetas/badges o ícone é compacto, mas mantém-se nos 24px. */
+.etiqueta .icone-categoria,
+.badge-neutro .icone-categoria {
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    max-width: 24px;
+    max-height: 24px;
+}
+
+.categoria-icone-celula {
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    border: 1px solid #FDE68A;
+    border-radius: 8px;
+    background: #FFFBEB;
+    color: #B45309;
+}
+.categoria-icone-celula .icone-categoria {
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    max-width: 24px;
+    max-height: 24px;
+}
+
+/* Selector visual de ícones no formulário de categorias. */
+.icone-opcoes {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+    gap: 8px;
+}
+.icone-opcao {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 9px 10px;
+    border: 1px solid var(--borda);
+    border-radius: 9px;
+    background: var(--cartao);
+    color: var(--texto-2);
+    font-size: .72rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color .18s ease, background .18s ease, box-shadow .18s ease;
+}
+.icone-opcao input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+.icone-opcao-visual {
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    flex: none;
+    border-radius: 7px;
+    background: #F8FAFC;
+    color: #64748B;
+    transition: background .18s ease, color .18s ease;
+}
+.icone-opcao .icone-categoria {
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    max-width: 24px;
+    max-height: 24px;
+}
+.icone-opcao input:checked + .icone-opcao-visual {
+    background: #FEF3C7;
+    color: var(--primario-escuro);
+}
+.icone-opcao input:focus-visible + .icone-opcao-visual {
+    outline: 2px solid var(--primario);
+    outline-offset: 2px;
+}
+.icone-opcao:hover {
+    border-color: #FCD34D;
+    background: #FFFDF8;
+}
+.icone-opcao:has(input:checked) {
+    border-color: var(--primario);
+    background: #FFFBEB;
+    color: var(--primario-escuro);
+    box-shadow: 0 0 0 2px rgba(217, 119, 6, .10);
+}
+.icone-opcao:has(input:checked) .icone-opcao-visual {
+    background: #FEF3C7;
+    color: var(--primario-escuro);
+}
+.icone-opcao:has(input:focus-visible) {
+    outline: 2px solid var(--primario);
+    outline-offset: 2px;
+}
+.icone-opcao-rotulo { line-height: 1.25; }
+
+@media (max-width: 540px) {
+    .icone-opcoes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
