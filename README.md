@@ -16,9 +16,9 @@ A aplicação está dividida em **duas áreas com linguagens visuais distintas**
 
 ```
 SaborPro/
-├── base_dados.sql            # BD (utf8mb4) + 12 pratos com fotografia + pedidos de demonstração
-├── ligacao.php               # MySQLi + sessão + helpers + migração idempotente
-├── index.php                 # SITE PÚBLICO: hero fotográfico, história, ementa com fotos, carrinho
+├── base_dados.sql            # BD (utf8mb4) + 12 pratos + pedidos e avaliações de demonstração
+├── ligacao.php               # MySQLi + sessão + helpers UTF-8 + migração idempotente
+├── index.php                 # SITE PÚBLICO: hero, história, ementa, avaliações, carrinho, PT/EN
 ├── gestao.php                # PORTAL: login + painel de operações
 ├── dashboard.php             # Atalho para o painel (mesmo conteúdo)
 ├── mesas.php                 # PLANTA DE SALA 2D — desenho SVG de mesas, cadeiras e balcão
@@ -30,14 +30,16 @@ SaborPro/
 ├── api/
 │   ├── pedido.php            # Registo de pedidos do POS interno
 │   ├── mesa.php              # Planta 2D: detalhe, adicionar item, fechar conta, mudar estado
+│   ├── avaliacao.php         # Submissão pública de avaliações (entra pendente de moderação)
+│   ├── avaliacao_admin.php   # Moderação: publicar/ocultar e eliminar avaliações (sessão admin)
 │   └── ementa_rapida.php     # Edição rápida de preço/stock (JSON, usada no painel)
 ├── includes/
 │   ├── cabecalho.php         # Cabeçalho/nav do portal
 │   ├── rodape.php            # Rodapé do portal
-│   ├── painel_resumo.php     # Dashboard: KPIs, monitor de pedidos e controlo de ementa
-│   └── icones.php            # Ícones SVG inline (sem bibliotecas)
-├── css/estilo.css            # Design system com duas zonas de estilo + planta de sala
-└── js/main.js                # Carrinhos, modais, alertas, validação, filtros, toast, auto-refresh
+│   ├── painel_resumo.php     # Dashboard: KPIs, gráficos SVG, monitor de pedidos e avaliações
+│   └── icones.php            # Ícones SVG inline + logótipo SaborPro + estrelas
+├── css/estilo.css            # Design system com duas zonas de estilo + planta + gráficos
+└── js/main.js                # Carrinhos, modais, PT/EN, avaliações, filtros, toast
 ```
 
 ## 2. Duplo tema
@@ -56,13 +58,20 @@ com sombra de 1 px.
 
 ## 3. Site público (cliente)
 
+- **Logótipo SaborPro** em SVG inline: cloche estilizada em dourado `#D97706`,
+  «Sabor» em tipografia serifada e etiqueta/badge «Pro».
 - **Hero fotográfico** com overlay em gradiente, tipografia serifada, selo circular e botão
   *«Explorar Ementa»*; horário, morada e telefone em rodapé de hero.
 - **A Nossa História** — três fotografias reais (sala, cozinha, prato), texto editorial,
-  assinatura da chef e indicadores (28 anos, 5 produtores, 4,8/5).
+  assinatura da chef e indicadores (28 anos, 5 produtores, nota média real das avaliações).
 - **Ementa digital** — cartões com fotografia real (Unsplash), preço sobre a imagem,
   selo *Recomendação do Chef*, etiquetas (`Vegetariano`, `Novidade`, `Sem Glúten`, `Picante`).
   Filtros por categoria e pesquisa em tempo real.
+- **Avaliações moderadas** — média em estrelas (ex.: `4,8/5`), cartões de testemunhos e
+  modal para o cliente deixar nome, 1–5 estrelas e comentário. A avaliação é gravada com
+  `visivel = 0` e só aparece no site depois de aprovada na gestão.
+- **Seletor de idioma PT | EN** no cabeçalho (JavaScript + `localStorage`), traduzindo as
+  frases principais do site (navegação, hero, história, ementa, avaliações, contacto e carrinho).
 - **Carrinho flutuante** (gaveta lateral) **sem login**:
   - Takeaway ou Na Mesa (com número da mesa);
   - nome, telefone e observações;
@@ -81,6 +90,11 @@ As fotografias dos pratos vêm da coluna `ementa.imagem_url`. Se uma imagem falh
   - **Monitor de pedidos do site** com barra pulsante e destaque azul nos takeaway por confirmar;
   - **Controlo de ementa** com preço editável em linha e interruptor de stock, gravando via
     `api/ementa_rapida.php` (JSON) sem recarregar a página;
+  - **Gráficos leves** desenhados apenas com CSS Grid/Flexbox e SVG puro:
+    **barras** de pedidos acumulados por hora do dia e **roscas** para a ocupação da sala
+    e a distribuição dos 5 pratos mais vendidos (últimos 30 dias);
+  - **Moderação de avaliações**: tabela com nota, comentário e estado; botões para
+    publicar/ocultar e eliminar, via `api/avaliacao_admin.php` (JSON);
   - fluxo de pedidos por estado e últimas vendas;
   - actualização automática a cada 90 s, suspensa enquanto edita um campo ou tem um modal aberto.
 - `mesas.php` — **planta de sala 2D realista**:
@@ -112,8 +126,9 @@ As fotografias dos pratos vêm da coluna `ementa.imagem_url`. Se uma imagem falh
 
 `ligacao.php` executa uma migração **idempotente** que acrescenta colunas novas
 (`ementa.etiquetas`, `ementa.destaque`, `ementa.imagem_url`, `pedidos.tipo_pedido`,
-`pedidos.cliente_nome`, `pedidos.cliente_telefone`, `pedidos.observacoes`) e a mesa
-`Balcão` (nº 0). Bases de dados antigas continuam a funcionar.
+`pedidos.cliente_nome`, `pedidos.cliente_telefone`, `pedidos.observacoes`), cria a tabela
+`avaliacoes` (se ainda não existir) e a mesa `Balcão` (nº 0). Bases de dados antigas
+continuam a funcionar.
 
 ## 6. Conta de demonstração
 
@@ -131,11 +146,17 @@ Também pode forçar via `SABORPRO_DB_HOST`, `SABORPRO_DB_USER`, `SABORPRO_DB_PA
 
 ## 8. Notas técnicas
 
-- Todo o SQL usa **prepared statements** (mysqli) com `utf8mb4`.
+- Todo o SQL usa **prepared statements** (mysqli) com `utf8mb4`; `ligacao.php` força
+  `set_charset('utf8mb4')`, `mb_internal_encoding('UTF-8')` e um cabeçalho HTTP UTF-8.
+- Todas as páginas HTML incluem `<meta charset="UTF-8">`; os dados acentuados são lidos e
+  escritos sem perda de caracteres.
 - Os preços dos pedidos são recalculados **no servidor** a partir da tabela `ementa`.
 - Senhas com `password_hash()` / `password_verify()`; `session_regenerate_id(true)` no login.
-- Ícones e planta de sala: **SVG inline**, sem dependências externas.
+- Ícones, logótipo, estrelas, planta de sala e gráficos: **SVG inline / CSS puro**,
+  sem bibliotecas externas nem CDNs.
 - Única dependência externa: fotografias de pratos alojadas no Unsplash (`images.unsplash.com`).
   Todas as URLs do seed foram verificadas (`HTTP 200`, `image/jpeg`).
 - O pedido público é gravado na tabela `pedidos` com `tipo_pedido = 'Takeaway' | 'Na Mesa'`
   e aparece imediatamente no painel e no ecrã da cozinha.
+- As avaliações públicas têm honeypot anti-spam e um limite de 45 s por sessão; ficam
+  pendentes até aprovação no portal de gestão.

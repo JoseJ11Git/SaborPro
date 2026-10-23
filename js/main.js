@@ -708,9 +708,269 @@
 
     initImagensFallback();
 
+    /* ---------------------- INTERNACIONALIZAÇÃO (PT/EN) --------- */
+
+    const I18N = {
+        pt: {
+            nav_home: 'Início', nav_story: 'A Nossa História', nav_menu: 'Ementa',
+            nav_reviews: 'Avaliações', nav_contact: 'Contacto',
+            nav_admin: 'Acesso Reservado', nav_explore: 'Explorar Ementa',
+            hero_eyebrow: 'Porto · desde 1998',
+            hero_title: 'Cozinha honesta,<br><em>mesa posta com alma.</em>',
+            hero_text: 'Produto local, receita de família e o tempo certo de cada prato. Uma sala pequena no coração do Porto, onde a carta muda com o mercado.',
+            hero_btn_menu: 'Explorar Ementa', hero_btn_story: 'A Nossa História',
+            hero_hours_label: 'Seg–Sáb · 12h00–23h00', hero_hours_text: 'Domingo · brunch até às 15h',
+            hero_phone_text: 'Reservas e encomendas', hero_seal: 'cozinha de autor',
+            story_eyebrow: 'A nossa filosofia',
+            story_title: 'Nasceu de uma banca<br>no mercado do Bolhão.',
+            story_p1: 'Em 1998, abrimos com quatro mesas, um fogão e a certeza de que <em>cozinhar é servir quem se gosta</em>. Vinte e oito anos depois, a sala cresceu — a forma de fazer as coisas não.',
+            story_p2: 'Trabalhamos com cinco produtores da região. O peixe chega da lota de manhã, o pão é assado todos os dias às sete e as hortícolas vêm do mercado, não de um catálogo. Nada de congelados, nada de atalhos.',
+            story_role: 'Chef e fundadora',
+            val_years: 'anos de cozinha', val_suppliers: 'produtores locais', val_rating: 'avaliações de clientes',
+            menu_eyebrow: 'Ementa da estação', menu_title: 'Escolha, adicione e receba.',
+            menu_sub: 'Pedido directo, sem criação de conta. Takeaway ou consumo na mesa.',
+            menu_all: 'Tudo', menu_search: 'Procurar um prato…', menu_add: 'Adicionar',
+            menu_chef: 'Recomendação do Chef', menu_new: 'Novidade',
+            rev_eyebrow: 'Avaliações', rev_title: 'Quem se senta à nossa mesa',
+            rev_sub: 'Opiniões reais de quem já provou a nossa cozinha.',
+            rev_count: 'Baseado em {n} avaliações', rev_cta: 'Deixar avaliação',
+            rev_empty: 'Seja o primeiro a avaliar a nossa cozinha.', rev_verified: 'Cliente verificado',
+            rev_form_title: 'Deixar avaliação',
+            rev_form_sub: 'A sua opinião ajuda-nos a melhorar. Obrigado!',
+            rev_form_rating: 'Classificação', rev_form_name: 'O seu nome',
+            rev_form_name_ph: 'Nome', rev_form_comment: 'O seu comentário',
+            rev_form_comment_ph: 'Conte-nos como foi a sua experiência…',
+            rev_form_note: 'O comentário será publicado após aprovação da equipa.',
+            rev_form_submit: 'Enviar avaliação',
+            contact_tagline: 'Cozinha de autor no centro do Porto. Almoço, jantar e brunch de domingo. Reservas para grupos e eventos privados.',
+            contact_order: 'Pedir agora', contact_address: 'Morada',
+            contact_address_note: 'A 5 min de São Bento', contact_contact: 'Contacto',
+            contact_reservations: 'Reservas e encomendas', contact_email_note: 'Resposta em 24 h',
+            contact_hours: 'Horário', contact_week: 'Seg–Sáb', contact_sunday: 'Domingo',
+            footer_text: 'Restaurante & Cafetaria — Sistema de Pedidos e Gestão',
+            footer_admin: 'Acesso Reservado / Gestão',
+            cart_btn: 'O meu pedido', cart_title: 'O seu pedido', cart_how: 'Como prefere receber?',
+            cart_takeaway_desc: 'Pronto em ~20 min', cart_table: 'Na Mesa',
+            cart_table_desc: 'Consumir no restaurante', cart_select_table: 'Escolha a mesa',
+            cart_name: 'O seu nome', cart_name_ph: 'Nome', cart_phone: 'Telefone',
+            cart_obs: 'Observações (opcional)', cart_obs_ph: 'Alergias, pedido especial…',
+            cart_subtotal: 'Subtotal', cart_vat: 'IVA (13%)', cart_vat_included: 'incluído',
+            cart_total: 'Total', cart_finish: 'Finalizar pedido',
+            toast_title: 'Pedido confirmado', toast_text: 'A cozinha já recebeu o seu pedido.',
+            cats: { 'Entradas': 'Entradas', 'Pratos': 'Pratos', 'Sobremesas': 'Sobremesas', 'Bebidas': 'Bebidas' }
+        },
+        en: {
+            nav_home: 'Home', nav_story: 'Our Story', nav_menu: 'Menu',
+            nav_reviews: 'Reviews', nav_contact: 'Contact',
+            nav_admin: 'Staff Access', nav_explore: 'Explore Menu',
+            hero_eyebrow: 'Porto · since 1998',
+            hero_title: 'Honest cooking,<br><em>a table set with soul.</em>',
+            hero_text: 'Local produce, family recipes and the right time for every dish. A small dining room in the heart of Porto, where the menu changes with the market.',
+            hero_btn_menu: 'Explore Menu', hero_btn_story: 'Our Story',
+            hero_hours_label: 'Mon–Sat · 12pm–11pm', hero_hours_text: 'Sunday · brunch until 3pm',
+            hero_phone_text: 'Reservations & orders', hero_seal: 'signature cuisine',
+            story_eyebrow: 'Our philosophy',
+            story_title: 'It began at a stall<br>in the Bolhão market.',
+            story_p1: 'In 1998 we opened with four tables, one stove and the certainty that <em>cooking is serving those you love</em>. Twenty-eight years later the room has grown — the way we do things has not.',
+            story_p2: 'We work with five regional producers. The fish arrives from the market first thing, the bread is baked every day at seven and the vegetables come from the market, not a catalogue. No frozen food, no shortcuts.',
+            story_role: 'Chef & founder',
+            val_years: 'years of cooking', val_suppliers: 'local producers', val_rating: 'customer reviews',
+            menu_eyebrow: 'Seasonal menu', menu_title: 'Choose, add and enjoy.',
+            menu_sub: 'Order directly, no account needed. Takeaway or dine in.',
+            menu_all: 'All', menu_search: 'Search a dish…', menu_add: 'Add',
+            menu_chef: "Chef's recommendation", menu_new: 'New',
+            rev_eyebrow: 'Reviews', rev_title: 'People at our table',
+            rev_sub: 'Honest words from guests who have tasted our cooking.',
+            rev_count: 'Based on {n} reviews', rev_cta: 'Leave a review',
+            rev_empty: 'Be the first to review our kitchen.', rev_verified: 'Verified guest',
+            rev_form_title: 'Leave a review',
+            rev_form_sub: 'Your feedback helps us improve. Thank you!',
+            rev_form_rating: 'Rating', rev_form_name: 'Your name',
+            rev_form_name_ph: 'Name', rev_form_comment: 'Your comment',
+            rev_form_comment_ph: 'Tell us about your experience…',
+            rev_form_note: 'Your comment will be published after approval by our team.',
+            rev_form_submit: 'Send review',
+            contact_tagline: 'Signature cuisine in the centre of Porto. Lunch, dinner and Sunday brunch. Reservations for groups and private events.',
+            contact_order: 'Order now', contact_address: 'Address',
+            contact_address_note: '5 min from São Bento', contact_contact: 'Contact',
+            contact_reservations: 'Reservations & orders', contact_email_note: 'Reply within 24 h',
+            contact_hours: 'Opening hours', contact_week: 'Mon–Sat', contact_sunday: 'Sunday',
+            footer_text: 'Restaurant & Café — Ordering & Management System',
+            footer_admin: 'Staff Access / Management',
+            cart_btn: 'My order', cart_title: 'Your order', cart_how: 'How would you like it?',
+            cart_takeaway_desc: 'Ready in ~20 min', cart_table: 'Dine in',
+            cart_table_desc: 'Eat at the restaurant', cart_select_table: 'Choose your table',
+            cart_name: 'Your name', cart_name_ph: 'Name', cart_phone: 'Phone',
+            cart_obs: 'Notes (optional)', cart_obs_ph: 'Allergies, special requests…',
+            cart_subtotal: 'Subtotal', cart_vat: 'VAT (13%)', cart_vat_included: 'included',
+            cart_total: 'Total', cart_finish: 'Place order',
+            toast_title: 'Order confirmed', toast_text: 'The kitchen has received your order.',
+            cats: { 'Entradas': 'Starters', 'Pratos': 'Mains', 'Sobremesas': 'Desserts', 'Bebidas': 'Drinks' }
+        }
+    };
+
+    let idiomaAtual = 'pt';
+
+    function traduzir(chave) {
+        const dicionario = I18N[idiomaAtual] || I18N.pt;
+        return dicionario[chave] || I18N.pt[chave] || '';
+    }
+
+    function aplicarIdioma(lang) {
+        if (!I18N[lang]) lang = 'pt';
+        idiomaAtual = lang;
+        document.documentElement.lang = lang === 'pt' ? 'pt-PT' : 'en';
+
+        document.querySelectorAll('[data-i18n]').forEach(function (el) {
+            const txt = traduzir(el.getAttribute('data-i18n'));
+            if (txt) el.textContent = txt;
+        });
+
+        document.querySelectorAll('[data-i18n-html]').forEach(function (el) {
+            const txt = traduzir(el.getAttribute('data-i18n-html'));
+            if (txt) el.innerHTML = txt;
+        });
+
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(function (el) {
+            const txt = traduzir(el.getAttribute('data-i18n-placeholder'));
+            if (txt) el.setAttribute('placeholder', txt);
+        });
+
+        /* Categorias da ementa (nomes vindos da BD) */
+        const cats = (I18N[lang] && I18N[lang].cats) || {};
+        document.querySelectorAll('[data-cat-nome]').forEach(function (el) {
+            const original = el.getAttribute('data-cat-nome');
+            el.textContent = cats[original] || original;
+        });
+
+        /* Opções de mesa do carrinho */
+        document.querySelectorAll('#mesaPublica option').forEach(function (op) {
+            const n = op.getAttribute('data-mesa');
+            const l = op.getAttribute('data-lugares');
+            if (!n) return;
+            op.textContent = lang === 'en'
+                ? 'Table ' + n + ' · ' + l + ' seats'
+                : 'Mesa ' + n + ' · ' + l + ' lugares';
+        });
+
+        /* Contador de avaliações com valor dinâmico */
+        document.querySelectorAll('[data-i18n="rev_count"]').forEach(function (el) {
+            const n = el.getAttribute('data-n');
+            el.textContent = traduzir('rev_count').replace('{n}', n !== null ? n : '0');
+        });
+
+        document.querySelectorAll('[data-lang]').forEach(function (b) {
+            const ativo = b.getAttribute('data-lang') === lang;
+            b.classList.toggle('ativo', ativo);
+            b.setAttribute('aria-pressed', ativo ? 'true' : 'false');
+        });
+
+        try { localStorage.setItem('saborproLang', lang); } catch (e) { /* sem localStorage */ }
+    }
+
+    function initIdioma() {
+        document.querySelectorAll('[data-lang]').forEach(function (b) {
+            b.addEventListener('click', function () {
+                aplicarIdioma(b.getAttribute('data-lang'));
+            });
+        });
+
+        let guardado = 'pt';
+        try { guardado = localStorage.getItem('saborproLang') || 'pt'; } catch (e) { /* ignore */ }
+        aplicarIdioma(guardado);
+    }
+
+    /* ---------------------- FORMULÁRIO DE AVALIAÇÃO -------------- */
+
+    function initAvaliacao() {
+        const form = document.getElementById('formAvaliacao');
+        if (!form) return;
+
+        const opcoes = Array.from(document.querySelectorAll('.estrela-opcao'));
+        const erro = document.getElementById('avaliacaoErro');
+        const nome = document.getElementById('avaliacaoNome');
+        const comentario = document.getElementById('avaliacaoComentario');
+        const botao = document.getElementById('btnEnviarAvaliacao');
+
+        function notaAtual() {
+            const escolhida = form.querySelector('input[name="classificacao"]:checked');
+            return escolhida ? Number(escolhida.value) : 5;
+        }
+
+        function pintar(n) {
+            opcoes.forEach(function (o, i) { o.classList.toggle('ativa', i < n); });
+        }
+
+        opcoes.forEach(function (o, i) {
+            o.addEventListener('mouseenter', function () { pintar(i + 1); });
+            o.addEventListener('mouseleave', function () { pintar(notaAtual()); });
+            const input = o.querySelector('input');
+            if (input) input.addEventListener('change', function () { pintar(i + 1); });
+        });
+        pintar(notaAtual());
+
+        function mostrarErro(msg) {
+            if (!erro) return;
+            erro.textContent = msg;
+            erro.classList.add('visivel');
+        }
+
+        form.addEventListener('submit', function (ev) {
+            ev.preventDefault();
+            if (erro) { erro.classList.remove('visivel'); erro.textContent = ''; }
+
+            const nomeV = nome ? nome.value.trim() : '';
+            const comentarioV = comentario ? comentario.value.trim() : '';
+
+            if (nomeV.length < 2) {
+                mostrarErro('Indique o seu nome (mínimo 2 caracteres).');
+                if (nome) nome.focus();
+                return;
+            }
+            if (comentarioV.length < 3) {
+                mostrarErro('Escreva um pequeno comentário sobre a sua experiência.');
+                if (comentario) comentario.focus();
+                return;
+            }
+
+            botao.disabled = true;
+            const base = window.saborproBase ? window.saborproBase() : '';
+            const honeypot = document.getElementById('avaliacaoWebsite');
+
+            fetch(base + '/api/avaliacao.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    nome: nomeV,
+                    classificacao: notaAtual(),
+                    comentario: comentarioV,
+                    website: honeypot ? honeypot.value : ''
+                })
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                botao.disabled = false;
+                if (!res || !res.ok) {
+                    mostrarErro((res && res.erro) || 'Não foi possível enviar a avaliação.');
+                    return;
+                }
+
+                window.saborproFecharModal('modalAvaliacao');
+                form.reset();
+                pintar(notaAtual());
+                if (window.saborproToast) window.saborproToast(res.mensagem || 'Obrigado pela sua avaliação.');
+            })
+            .catch(function () {
+                botao.disabled = false;
+                mostrarErro('Sem ligação ao servidor. Tente novamente.');
+            });
+        });
+    }
+
     /* ---------------------- ARRANQUE --------------------------- */
 
     document.addEventListener('DOMContentLoaded', function () {
+        initIdioma();
         initModais();
         initAlertas();
         initValidacao();
@@ -719,6 +979,7 @@
         initCarrinho();
         initCarrinhoPublico();
         initFiltroPublico();
+        initAvaliacao();
         initImagensFallback();
         initAutoRefresh();
     });

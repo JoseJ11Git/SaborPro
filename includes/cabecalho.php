@@ -36,10 +36,7 @@ $itensNav = [
 
     <header class="nav">
         <div class="container nav-inner">
-            <a href="dashboard.php" class="marca">
-                <span class="logo"><?= icone('garfo') ?></span>
-                <span>SaborPro<small>gestão &amp; pedidos</small></span>
-            </a>
+            <?= logo_saborpro('claro', 'gestão & pedidos', 'dashboard.php') ?>
 
             <nav class="nav-links" id="navLinks">
                 <?php foreach ($itensNav as $chave => [$rotulo, $ic]): ?>

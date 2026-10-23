@@ -104,6 +104,21 @@ CREATE TABLE itens_pedido (
     INDEX idx_item_pedido (pedido_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- -------------------------------------------------------------
+-- Tabela: avaliacoes
+-- visivel = 0 -> aguarda moderação no portal de gestão
+-- -------------------------------------------------------------
+CREATE TABLE avaliacoes (
+    id            INT AUTO_INCREMENT PRIMARY KEY,
+    nome_cliente  VARCHAR(80) NOT NULL,
+    classificacao TINYINT NOT NULL DEFAULT 5,
+    comentario    VARCHAR(500) DEFAULT NULL,
+    criado_em     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    visivel       TINYINT(1) NOT NULL DEFAULT 0,
+    INDEX idx_avaliacoes_visivel (visivel),
+    INDEX idx_avaliacoes_data (criado_em)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- =============================================================
 --  DADOS DE DEMONSTRAÇÃO
 --  Conta única: admin@saborpro.pt / 123456
@@ -166,7 +181,13 @@ INSERT INTO ementa (categoria_id, nome, descricao, preco, disponivel, etiquetas,
 INSERT INTO pedidos (mesa_id, utilizador_id, total, estado, tipo_pedido, cliente_nome, cliente_telefone, criado_em) VALUES
 ((SELECT id FROM mesas WHERE numero = 1), 1, 30.40, 'Pendente',      'Na Mesa',  'Cliente Mesa 1', '912345678', DATE_SUB(NOW(), INTERVAL 12 MINUTE)),
 ((SELECT id FROM mesas WHERE numero = 4), 1, 23.30, 'Em Preparação', 'Na Mesa',  'Cliente Mesa 4', '912345679', DATE_SUB(NOW(), INTERVAL 5 MINUTE)),
-((SELECT id FROM mesas WHERE numero = 0), 1,  4.80, 'Pendente',      'Takeaway', 'Maria Silva',    '912345680', DATE_SUB(NOW(), INTERVAL 3 MINUTE));
+((SELECT id FROM mesas WHERE numero = 0), 1,  4.80, 'Pendente',      'Takeaway', 'Maria Silva',    '912345680', DATE_SUB(NOW(), INTERVAL 3 MINUTE)),
+((SELECT id FROM mesas WHERE numero = 2), 1, 18.60, 'Entregue',      'Na Mesa',  NULL,             NULL,        DATE_SUB(NOW(), INTERVAL 1 HOUR)),
+((SELECT id FROM mesas WHERE numero = 3), 1, 36.20, 'Entregue',      'Na Mesa',  NULL,             NULL,        DATE_SUB(NOW(), INTERVAL 2 HOUR)),
+((SELECT id FROM mesas WHERE numero = 0), 1, 17.30, 'Entregue',      'Takeaway', 'João Pereira',   '912345681', DATE_SUB(NOW(), INTERVAL 3 HOUR)),
+((SELECT id FROM mesas WHERE numero = 6), 1, 31.60, 'Pronto',        'Na Mesa',  'Cliente Mesa 6', '912345682', DATE_SUB(NOW(), INTERVAL 4 HOUR)),
+((SELECT id FROM mesas WHERE numero = 5), 1, 54.50, 'Entregue',      'Na Mesa',  NULL,             NULL,        DATE_SUB(NOW(), INTERVAL 5 HOUR)),
+((SELECT id FROM mesas WHERE numero = 0), 1, 20.70, 'Pendente',      'Takeaway', 'André Lopes',    '913222333', DATE_SUB(NOW(), INTERVAL 6 HOUR));
 
 INSERT INTO itens_pedido (pedido_id, ementa_id, quantidade, preco_unitario) VALUES
 (1, 11, 2, 1.40),
@@ -177,4 +198,33 @@ INSERT INTO itens_pedido (pedido_id, ementa_id, quantidade, preco_unitario) VALU
 (2, 9,  1, 4.80),
 (2, 11, 1, 1.40),
 (2, 12, 1, 3.20),
-(3, 9,  1, 4.80);
+(3, 9,  1, 4.80),
+(4, 1,  1, 5.50),
+(4, 8,  1, 9.90),
+(4, 12, 1, 3.20),
+(5, 6,  2, 12.50),
+(5, 12, 2, 3.20),
+(5, 9,  1, 4.80),
+(6, 7,  1, 15.90),
+(6, 11, 1, 1.40),
+(7, 5,  1, 14.90),
+(7, 4,  1, 13.90),
+(7, 11, 2, 1.40),
+(8, 3,  2, 16.50),
+(8, 1,  1, 5.50),
+(8, 9,  2, 4.80),
+(8, 12, 2, 3.20),
+(9, 7,  1, 15.90),
+(9, 9,  1, 4.80);
+
+-- Avaliações de demonstração -------------------------------------
+-- visivel = 1 -> publicadas no site | visivel = 0 -> aguardam moderação
+INSERT INTO avaliacoes (nome_cliente, classificacao, comentario, visivel, criado_em) VALUES
+('Marta Sousa',   5, 'O bacalhau à lagareiro estava perfeito — textura impecável e um molho de vinho tinto memorável.', 1, DATE_SUB(NOW(), INTERVAL 6 DAY)),
+('João Ferreira', 5, 'Serviço atencioso e uma sala muito acolhedora. Voltámos duas vezes na mesma semana.', 1, DATE_SUB(NOW(), INTERVAL 5 DAY)),
+('Inês Almeida',  4, 'A comida é excelente. O espaço é pequeno, por isso convém reservar com antecedência.', 1, DATE_SUB(NOW(), INTERVAL 3 DAY)),
+('Rui Martins',   5, 'O risotto de fungos é dos melhores que já provei no Porto. Recomendo vivamente.', 1, DATE_SUB(NOW(), INTERVAL 2 DAY)),
+('Sofia Costa',   5, 'Brunch de domingo fantástico: produto fresco, pão quentinho e café excelente.', 1, DATE_SUB(NOW(), INTERVAL 1 DAY)),
+('Pedro Nunes',   5, 'Boa relação qualidade-preço. A limonada de hortelã é viciante!', 1, DATE_SUB(NOW(), INTERVAL 8 HOUR)),
+('Carla Mendes',  5, 'Jantámos ontem e foi uma experiência maravilhosa. A equipa é simpática e o peixe estava no ponto.', 0, DATE_SUB(NOW(), INTERVAL 2 HOUR));
+

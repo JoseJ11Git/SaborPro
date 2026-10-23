@@ -95,3 +95,46 @@ function icone_categoria(string $chave): string
     ];
     return icone($mapa[$chave] ?? 'prato');
 }
+
+/**
+ * Logótipo oficial do SaborPro (SVG inline, sem imagens externas).
+ *  - Ícone: cloche de restaurante estilizada
+ *  - Texto: "Sabor" + etiqueta "Pro"
+ */
+function logo_saborpro(string $variante = 'claro', string $subtitulo = 'restaurante · porto', string $href = 'index.php'): string
+{
+    $classe = 'marca' . ($variante === 'escuro' ? ' marca-escuro' : '');
+
+    return '<a href="' . htmlspecialchars($href, ENT_QUOTES, 'UTF-8') . '" class="' . $classe . '" aria-label="SaborPro — página inicial">'
+        . '<span class="marca-logo" aria-hidden="true">'
+        . '<svg viewBox="0 0 44 44" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">'
+        . '<path d="M4 33h36"/>'
+        . '<path d="M8 33a14 14 0 0 1 28 0"/>'
+        . '<path d="M13 37.5h18"/>'
+        . '<path d="M22 19v-3.2"/>'
+        . '<circle cx="22" cy="13.2" r="2.5" fill="currentColor" stroke="none"/>'
+        . '</svg>'
+        . '</span>'
+        . '<span class="marca-texto">'
+        . '<span class="marca-nome">Sabor<span class="marca-pro">Pro</span></span>'
+        . '<small>' . htmlspecialchars($subtitulo, ENT_QUOTES, 'UTF-8') . '</small>'
+        . '</span>'
+        . '</a>';
+}
+
+/**
+ * Estrelas de classificação (0 a 5). Suporta meias estrelas visuais
+ * através de uma camada dourada com largura percentual.
+ */
+function estrelas(float $nota, int $tamanho = 16): string
+{
+    $nota = max(0.0, min(5.0, $nota));
+    $pct  = ($nota / 5) * 100;
+    $estrela = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="' . $tamanho . '" height="' . $tamanho . '">'
+        . '<path d="m12 2.6 2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.5l-5.9 3.1 1.2-6.5L2.5 9.5l6.6-.9Z"/></svg>';
+
+    return '<span class="estrelas" style="--nota:' . $pct . '%" role="img" aria-label="' . number_format($nota, 1, ',', '.') . ' de 5 estrelas">'
+        . '<span class="estrelas-fundo" aria-hidden="true">' . str_repeat($estrela, 5) . '</span>'
+        . '<span class="estrelas-ouro" aria-hidden="true">' . str_repeat($estrela, 5) . '</span>'
+        . '</span>';
+}

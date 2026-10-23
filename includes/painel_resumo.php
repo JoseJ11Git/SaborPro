@@ -37,6 +37,10 @@ $r->free();
 $totalMesas = (int) ($mesasResumo['total'] ?? 0);
 $pctOcupacao = $totalMesas > 0 ? (int) round(((int) $mesasResumo['ocupadas'] / $totalMesas) * 100) : 0;
 
+$r = $bd->query('SELECT COALESCE(SUM(capacidade),0) AS c FROM mesas WHERE numero > 0');
+$capacidadeTotal = (int) $r->fetch_assoc()['c'];
+$r->free();
+
 $ticketMedio = (int) $faturacao['n'] > 0 ? (float) $faturacao['v'] / (int) $faturacao['n'] : 0.0;
 
 /* --------------------- PEDIDOS DO SITE (monitor) --------------------- */
@@ -87,6 +91,77 @@ while ($x = $r->fetch_assoc()) {
 }
 $r->free();
 $totalPedidos = array_sum($porEstado) ?: 1;
+
+/* --------------------- GRÁFICO: PEDIDOS POR HORA --------------------- */
+$porHora = [];
+$r = $bd->query("SELECT HOUR(criado_em) AS h, COUNT(*) AS n, COALESCE(SUM(total),0) AS v
+                   FROM pedidos
+                  WHERE DATE(criado_em) = CURDATE()
+                  GROUP BY HOUR(criado_em)");
+while ($x = $r->fetch_assoc()) {
+    $porHora[(int) $x['h']] = ['n' => (int) $x['n'], 'v' => (float) $x['v']];
+}
+$r->free();
+
+$horasGrafico = range(0, 23);
+$maxHora      = 1;
+$horaPico     = null;
+$pedidosHoje  = 0;
+foreach ($horasGrafico as $h) {
+    $n = $porHora[$h]['n'] ?? 0;
+    $pedidosHoje += $n;
+    if ($n > $maxHora) {
+        $maxHora = $n;
+    }
+    if ($horaPico === null || $n > ($porHora[$horaPico]['n'] ?? 0)) {
+        $horaPico = $h;
+    }
+}
+if ($pedidosHoje === 0) {
+    $horaPico = null;
+}
+
+/* ------------------ GRÁFICO: TOP PRATOS (30 DIAS) ------------------ */
+$topPratos = [];
+$r = $bd->query("SELECT e.nome, SUM(i.quantidade) AS qtd
+                   FROM itens_pedido i
+                   JOIN ementa e ON e.id = i.ementa_id
+                   JOIN pedidos p ON p.id = i.pedido_id
+                  WHERE p.criado_em >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+                  GROUP BY e.id, e.nome
+                  ORDER BY qtd DESC
+                  LIMIT 5");
+while ($x = $r->fetch_assoc()) {
+    $topPratos[] = ['nome' => (string) $x['nome'], 'qtd' => (int) $x['qtd']];
+}
+$r->free();
+
+$totalTopPratos = array_sum(array_column($topPratos, 'qtd'));
+$coresPratos = ['#D97706', '#991B1B', '#0284C7', '#059669', '#7C3AED'];
+$raioDonut   = 58;
+$circunferencia = 2 * M_PI * $raioDonut;
+$acumulado = 0.0;
+
+/* ------------------------- AVALIAÇÕES (gestão) ------------------------- */
+$avaliacoesAdmin = [];
+$r = $bd->query("SELECT id, nome_cliente, classificacao, comentario, criado_em, visivel
+                   FROM avaliacoes
+                  ORDER BY visivel ASC, criado_em DESC
+                  LIMIT 30");
+while ($x = $r->fetch_assoc()) {
+    $avaliacoesAdmin[] = $x;
+}
+$r->free();
+
+$r = $bd->query("SELECT COUNT(*) AS total, COALESCE(AVG(classificacao),0) AS media,
+                        SUM(visivel = 0) AS pendentes
+                   FROM avaliacoes");
+$resAval = $r->fetch_assoc();
+$r->free();
+
+$avalPendentes = (int) ($resAval['pendentes'] ?? 0);
+$avalTotal     = (int) ($resAval['total'] ?? 0);
+$avalMedia     = $avalTotal > 0 ? round((float) $resAval['media'], 1) : 0.0;
 ?>
 
 <!-- ===================== CABEÇALHO DO PAINEL ===================== -->
@@ -323,6 +398,214 @@ $totalPedidos = array_sum($porEstado) ?: 1;
     </div>
 </div>
 
+<!-- ===================== GRÁFICOS (SVG / CSS PUROS) ===================== -->
+<div class="cartao grafico-cartao mt-2">
+    <div class="entre mb-2">
+        <div>
+            <h3 class="mb-0" style="font-size:.98rem">Vendas por hora</h3>
+            <p class="pequeno texto-3 mb-0" style="margin:2px 0 0">Hoje · pedidos acumulados em cada hora</p>
+        </div>
+        <?php if ($horaPico !== null): ?>
+            <span class="etiqueta badge-neutro">
+                Pico às <?= (int) $horaPico ?>h · <?= (int) ($porHora[$horaPico]['n'] ?? 0) ?> pedidos
+            </span>
+        <?php endif; ?>
+    </div>
+
+    <div class="barras-hora" role="img" aria-label="Gráfico de pedidos por hora de hoje">
+        <?php foreach ($horasGrafico as $h): ?>
+            <?php
+            $n   = $porHora[$h]['n'] ?? 0;
+            $v   = $porHora[$h]['v'] ?? 0.0;
+            $alt = $n > 0 ? max(6, (int) round(($n / $maxHora) * 100)) : 0;
+            ?>
+            <div class="barra-col<?= $n > 0 ? ' com-dados' : '' ?>"
+                 title="<?= $h ?>h00 · <?= $n ?> pedido(s) · <?= dinheiro((float) $v) ?>">
+                <span class="barra-valor"><?= $n > 0 ? $n : '' ?></span>
+                <div class="barra-trilho">
+                    <div class="barra-preenchida" style="height:<?= $alt ?>%"></div>
+                </div>
+                <span class="barra-hora"><?= $h ?>h</span>
+            </div>
+        <?php endforeach; ?>
+    </div>
+
+    <?php if ($pedidosHoje === 0): ?>
+        <p class="vazio" style="padding:14px 0 0">Ainda não existem pedidos hoje.</p>
+    <?php endif; ?>
+</div>
+
+<div class="grelha g-2 mt-2">
+    <!-- Ocupação da sala -->
+    <div class="cartao grafico-cartao">
+        <div class="entre mb-2">
+            <div>
+                <h3 class="mb-0" style="font-size:.98rem">Ocupação da sala</h3>
+                <p class="pequeno texto-3 mb-0" style="margin:2px 0 0">Mesas com pedido ativo</p>
+            </div>
+            <span class="etiqueta <?= $pctOcupacao >= 80 ? 'estado-pendente' : 'estado-pronto' ?>">
+                <span class="ponto"></span><?= $pctOcupacao ?>%
+            </span>
+        </div>
+
+        <div class="donut-envolvente">
+            <svg viewBox="0 0 160 160" class="donut" role="img" aria-label="Ocupação da sala: <?= $pctOcupacao ?>%">
+                <circle cx="80" cy="80" r="<?= $raioDonut ?>" class="donut-trilho"/>
+                <circle cx="80" cy="80" r="<?= $raioDonut ?>" class="donut-segmento"
+                        style="stroke:#059669;stroke-dasharray:<?= round($circunferencia * $pctOcupacao / 100, 2) ?> <?= round($circunferencia, 2) ?>"/>
+                <text x="80" y="76" class="donut-num"><?= $pctOcupacao ?>%</text>
+                <text x="80" y="95" class="donut-mini">ocupação</text>
+            </svg>
+
+            <div class="donut-legenda">
+                <div class="donut-legenda-item">
+                    <span class="ponto-cor" style="background:#059669"></span>
+                    <span>Ocupadas</span>
+                    <strong><?= (int) $mesasResumo['ocupadas'] ?></strong>
+                </div>
+                <div class="donut-legenda-item">
+                    <span class="ponto-cor" style="background:#D97706"></span>
+                    <span>Reservadas</span>
+                    <strong><?= (int) $mesasResumo['reservadas'] ?></strong>
+                </div>
+                <div class="donut-legenda-item">
+                    <span class="ponto-cor" style="background:#CBD5E1"></span>
+                    <span>Livres</span>
+                    <strong><?= (int) $mesasResumo['livres'] ?></strong>
+                </div>
+                <p class="pequeno texto-3" style="margin:8px 0 0">
+                    <?= $totalMesas ?> mesas na sala · capacidade para
+                    <?= $capacidadeTotal ?> pessoas
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top pratos -->
+    <div class="cartao grafico-cartao">
+        <div class="entre mb-2">
+            <div>
+                <h3 class="mb-0" style="font-size:.98rem">Pratos mais vendidos</h3>
+                <p class="pequeno texto-3 mb-0" style="margin:2px 0 0">Últimos 30 dias · distribuição</p>
+            </div>
+            <span class="etiqueta badge-neutro"><?= (int) $totalTopPratos ?> doses</span>
+        </div>
+
+        <?php if (!$topPratos): ?>
+            <div class="vazio" style="padding:32px 10px">Sem vendas nos últimos 30 dias.</div>
+        <?php else: ?>
+            <div class="donut-envolvente">
+                <svg viewBox="0 0 160 160" class="donut" role="img" aria-label="Distribuição dos pratos mais vendidos">
+                    <circle cx="80" cy="80" r="<?= $raioDonut ?>" class="donut-trilho"/>
+                    <?php foreach ($topPratos as $idx => $tp): ?>
+                        <?php
+                        $pct  = $totalTopPratos > 0 ? ($tp['qtd'] / $totalTopPratos) * 100 : 0;
+                        $len  = ($pct / 100) * $circunferencia;
+                        $cor  = $coresPratos[$idx % count($coresPratos)];
+                        $off  = -(($acumulado / 100) * $circunferencia);
+                        $acumulado += $pct;
+                        ?>
+                        <circle cx="80" cy="80" r="<?= $raioDonut ?>"
+                                class="donut-segmento"
+                                style="stroke:<?= $cor ?>;stroke-dasharray:<?= round(max(0, $len - 2.4), 2) ?> <?= round($circunferencia, 2) ?>;stroke-dashoffset:<?= round($off, 2) ?>"/>
+                    <?php endforeach; ?>
+                    <text x="80" y="76" class="donut-num"><?= (int) $totalTopPratos ?></text>
+                    <text x="80" y="95" class="donut-mini">doses</text>
+                </svg>
+
+                <div class="donut-legenda">
+                    <?php foreach ($topPratos as $idx => $tp): ?>
+                        <?php $pct = $totalTopPratos > 0 ? round(($tp['qtd'] / $totalTopPratos) * 100) : 0; ?>
+                        <div class="donut-legenda-item">
+                            <span class="ponto-cor" style="background:<?= $coresPratos[$idx % count($coresPratos)] ?>"></span>
+                            <span class="txt-corte"><?= e($tp['nome']) ?></span>
+                            <strong><?= $pct ?>%</strong>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        <?php endif; ?>
+    </div>
+</div>
+
+<!-- ===================== AVALIAÇÕES (MODERAÇÃO) ===================== -->
+<div class="cartao mt-2" id="painelAvaliacoes">
+    <div class="entre mb-2">
+        <div>
+            <h3 class="mb-0" style="font-size:.98rem">Avaliações dos clientes</h3>
+            <p class="pequeno texto-3 mb-0" style="margin:2px 0 0">
+                Modere o que é publicado no site público
+            </p>
+        </div>
+        <div class="d-flex-wrap" style="align-items:center">
+            <span class="etiqueta badge-neutro"><?= estrelas($avalMedia, 12) ?> <?= number_format($avalMedia, 1, ',', '.') ?></span>
+            <?php if ($avalPendentes > 0): ?>
+                <span class="etiqueta estado-pendente">
+                    <span class="ponto"></span><?= $avalPendentes ?> por moderar
+                </span>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <div class="tabela-envolvente" style="border:0">
+        <table class="tabela tabela-compacta" style="min-width:700px">
+            <thead>
+                <tr>
+                    <th>Cliente</th>
+                    <th>Nota</th>
+                    <th>Comentário</th>
+                    <th>Data</th>
+                    <th>Estado</th>
+                    <th class="num">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+            <?php if (!$avaliacoesAdmin): ?>
+                <tr><td colspan="6" class="texto-centro texto-3" style="padding:24px">Ainda não existem avaliações.</td></tr>
+            <?php else: ?>
+                <?php foreach ($avaliacoesAdmin as $a): ?>
+                    <tr data-aval-id="<?= (int) $a['id'] ?>">
+                        <td>
+                            <div class="negrito" style="font-size:.82rem"><?= e($a['nome_cliente']) ?></div>
+                            <div class="texto-3" style="font-size:.7rem">#<?= (int) $a['id'] ?></div>
+                        </td>
+                        <td><?= estrelas((float) $a['classificacao'], 12) ?></td>
+                        <td style="max-width:340px">
+                            <div class="txt-corte-2" style="font-size:.8rem"><?= e($a['comentario']) ?></div>
+                        </td>
+                        <td class="texto-3" style="font-size:.74rem;white-space:nowrap">
+                            <?= date('d/m/Y H:i', strtotime((string) $a['criado_em'])) ?>
+                        </td>
+                        <td>
+                            <span class="etiqueta <?= (int) $a['visivel'] === 1 ? 'estado-pronto' : 'estado-pendente' ?>"
+                                  data-aval-estado>
+                                <span class="ponto"></span><?= (int) $a['visivel'] === 1 ? 'Publicada' : 'Em moderação' ?>
+                            </span>
+                        </td>
+                        <td class="num">
+                            <div style="display:flex;gap:6px;justify-content:flex-end">
+                                <button type="button" class="btn btn-fantasma btn-sm"
+                                        data-aval-visivel="<?= (int) $a['id'] ?>"
+                                        data-estado="<?= (int) $a['visivel'] ?>"
+                                        title="<?= (int) $a['visivel'] === 1 ? 'Ocultar do site' : 'Publicar no site' ?>">
+                                    <?= (int) $a['visivel'] === 1 ? icone('olho', '', 14) : icone('ok', '', 14) ?>
+                                    <?= (int) $a['visivel'] === 1 ? 'Ocultar' : 'Publicar' ?>
+                                </button>
+                                <button type="button" class="btn btn-perigo btn-sm"
+                                        data-aval-eliminar="<?= (int) $a['id'] ?>"
+                                        title="Eliminar avaliação">
+                                    <?= icone('lixo', '', 14) ?>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
+</div>
+
 <!-- ===================== EDIÇÃO RÁPIDA (JS) ===================== -->
 <script>
 (function () {
@@ -382,6 +665,73 @@ $totalPedidos = array_sum($porEstado) ?: 1;
                 if (window.saborproToast) {
                     window.saborproToast(novo === 1 ? 'Item reposto em stock.' : 'Item marcado como esgotado.');
                 }
+            });
+        });
+    });
+})();
+
+/* ================= MODERAÇÃO DE AVALIAÇÕES ================= */
+(function () {
+    var base = window.saborproBase ? window.saborproBase() : '';
+
+    function pedido(dados, concluir) {
+        fetch(base + '/api/avaliacao_admin.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(dados)
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (res) { concluir(res); })
+        .catch(function () { concluir({ ok: false }); });
+    }
+
+    document.querySelectorAll('[data-aval-visivel]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var id = btn.getAttribute('data-aval-visivel');
+            var novo = btn.getAttribute('data-estado') === '1' ? 0 : 1;
+            btn.disabled = true;
+
+            pedido({ id: Number(id), acao: 'visivel', valor: novo }, function (res) {
+                btn.disabled = false;
+                if (!res || !res.ok) {
+                    if (window.saborproToast) window.saborproToast('Não foi possível actualizar a avaliação.');
+                    return;
+                }
+
+                btn.setAttribute('data-estado', String(novo));
+                btn.textContent = novo === 1 ? 'Ocultar' : 'Publicar';
+                btn.title = novo === 1 ? 'Ocultar do site' : 'Publicar no site';
+
+                var linha = btn.closest('tr');
+                var tag = linha ? linha.querySelector('[data-aval-estado]') : null;
+                if (tag) {
+                    tag.className = 'etiqueta ' + (novo === 1 ? 'estado-pronto' : 'estado-pendente');
+                    tag.innerHTML = '<span class="ponto"></span>' + (novo === 1 ? 'Publicada' : 'Em moderação');
+                }
+
+                if (window.saborproToast) {
+                    window.saborproToast(novo === 1 ? 'Avaliação publicada no site.' : 'Avaliação ocultada do site.');
+                }
+            });
+        });
+    });
+
+    document.querySelectorAll('[data-aval-eliminar]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            if (!window.confirm('Eliminar definitivamente esta avaliação?')) return;
+
+            var id = btn.getAttribute('data-aval-eliminar');
+            btn.disabled = true;
+
+            pedido({ id: Number(id), acao: 'eliminar' }, function (res) {
+                if (!res || !res.ok) {
+                    btn.disabled = false;
+                    if (window.saborproToast) window.saborproToast('Não foi possível eliminar a avaliação.');
+                    return;
+                }
+                var linha = btn.closest('tr');
+                if (linha) linha.remove();
+                if (window.saborproToast) window.saborproToast('Avaliação eliminada.');
             });
         });
     });

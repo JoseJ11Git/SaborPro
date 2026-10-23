@@ -58,10 +58,7 @@ if (!autenticado()) {
     <div class="pagina">
         <header class="nav">
             <div class="container nav-inner">
-                <a href="index.php" class="marca">
-                    <span class="logo"><?= icone('garfo') ?></span>
-                    <span>SaborPro<small>portal de gestão</small></span>
-                </a>
+                <?= logo_saborpro('claro', 'portal de gestão', 'index.php') ?>
                 <div class="nav-util">
                     <a href="index.php" class="btn btn-fantasma btn-sm"><?= icone('seta-direita', '', 14) ?> Voltar ao site</a>
                 </div>

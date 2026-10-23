@@ -12,6 +12,19 @@
 
 declare(strict_types=1);
 
+/* ============================ UTF-8 (GLOBAL) ============================ */
+// Todo o texto interno, leitura da BD e saída HTML trabalham em UTF-8 puro.
+mb_internal_encoding('UTF-8');
+mb_regex_encoding('UTF-8');
+if (function_exists('mb_substitute_character')) {
+    mb_substitute_character('none');
+}
+ini_set('default_charset', 'UTF-8');
+
+if (PHP_SAPI !== 'cli' && !headers_sent()) {
+    header('Content-Type: text/html; charset=utf-8');
+}
+
 /* ============================ CONFIGURAÇÃO ============================ */
 
 // Credenciais do servidor remoto (ex.: lab.csmiguel.pt)
@@ -160,6 +173,18 @@ function saborpro_migrar(mysqli $bd): void
         $bd->query("INSERT INTO mesas (numero, capacidade, estado) VALUES (0, 1, 'Livre')");
     }
     $res->free();
+
+    // Avaliações dos clientes (site público)
+    $bd->query("CREATE TABLE IF NOT EXISTS avaliacoes (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        nome_cliente VARCHAR(80) NOT NULL,
+        classificacao TINYINT NOT NULL DEFAULT 5,
+        comentario VARCHAR(500) DEFAULT NULL,
+        criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        visivel TINYINT(1) NOT NULL DEFAULT 0,
+        INDEX idx_avaliacoes_visivel (visivel),
+        INDEX idx_avaliacoes_data (criado_em)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 }
 
 saborpro_migrar($bd);
