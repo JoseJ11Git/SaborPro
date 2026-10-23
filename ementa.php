@@ -27,16 +27,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $disp      = isset($_POST['disponivel']) ? 1 : 0;
         $destaque  = isset($_POST['destaque']) ? 1 : 0;
         $etiquetas = trim($_POST['etiquetas'] ?? '');
+        $imagem    = trim($_POST['imagem_url'] ?? '');
+
+        if ($imagem !== '' && !preg_match('~^https?://~i', $imagem)) {
+            $imagem = '';
+        }
 
         if ($nome === '' || $catId <= 0 || $preco <= 0) {
             $erro = 'Preencha nome, categoria e um preço válido.';
         } else {
             if ($id > 0) {
-                $stmt = $bd->prepare('UPDATE ementa SET nome=?, descricao=?, categoria_id=?, preco=?, disponivel=?, destaque=?, etiquetas=? WHERE id=?');
-                $stmt->bind_param('ssdsiisi', $nome, $descricao, $catId, $preco, $disp, $destaque, $etiquetas, $id);
+                $stmt = $bd->prepare('UPDATE ementa SET nome=?, descricao=?, categoria_id=?, preco=?, disponivel=?, destaque=?, etiquetas=?, imagem_url=? WHERE id=?');
+                $stmt->bind_param('ssidiissi', $nome, $descricao, $catId, $preco, $disp, $destaque, $etiquetas, $imagem, $id);
             } else {
-                $stmt = $bd->prepare('INSERT INTO ementa (nome, descricao, categoria_id, preco, disponivel, destaque, etiquetas) VALUES (?,?,?,?,?,?,?)');
-                $stmt->bind_param('ssdsisi', $nome, $descricao, $catId, $preco, $disp, $destaque, $etiquetas);
+                $stmt = $bd->prepare('INSERT INTO ementa (nome, descricao, categoria_id, preco, disponivel, destaque, etiquetas, imagem_url) VALUES (?,?,?,?,?,?,?,?)');
+                $stmt->bind_param('ssidiiss', $nome, $descricao, $catId, $preco, $disp, $destaque, $etiquetas, $imagem);
             }
             $stmt->execute();
             $stmt->close();
@@ -103,7 +108,7 @@ while ($c = $r->fetch_assoc()) {
 $r->free();
 
 $itens = [];
-$r = $bd->query("SELECT e.id, e.nome, e.descricao, e.preco, e.disponivel, e.etiquetas, e.destaque,
+$r = $bd->query("SELECT e.id, e.nome, e.descricao, e.preco, e.disponivel, e.etiquetas, e.destaque, e.imagem_url,
                         e.categoria_id, c.nome AS categoria, c.icone_svg
                    FROM ementa e JOIN categorias c ON c.id = e.categoria_id
                   ORDER BY c.nome, e.destaque DESC, e.nome");
@@ -167,15 +172,22 @@ require_once __DIR__ . '/includes/cabecalho.php';
             <?php foreach ($itens as $i => $it): ?>
                 <tr>
                     <td>
-                        <div class="negrito"><?= e($it['nome']) ?></div>
-                        <div class="pequeno texto-3"><?= e($it['descricao'] ?? '') ?></div>
-                        <div class="prato-tags mt-1">
-                            <?php if ((int) $it['destaque'] === 1): ?>
-                                <span class="tag tag-chef"><?= icone('estrela', '', 12) ?> Escolha do Chef</span>
-                            <?php endif; ?>
-                            <?php foreach (etiquetas_ementa($it['etiquetas']) as $et): ?>
-                                <span class="tag <?= classe_etiqueta($et) ?>"><?= e(rotulo_etiqueta($et)) ?></span>
-                            <?php endforeach; ?>
+                        <div class="entre" style="align-items:flex-start;gap:12px">
+                            <img src="<?= e(imagem_prato($it['imagem_url'])) ?>"
+                                 alt="" loading="lazy" width="54" height="54"
+                                 style="width:54px;height:54px;object-fit:cover;border-radius:6px;border:1px solid var(--borda);flex:none">
+                            <div style="min-width:0">
+                                <div class="negrito"><?= e($it['nome']) ?></div>
+                                <div class="pequeno texto-3"><?= e($it['descricao'] ?? '') ?></div>
+                                <div class="prato-tags mt-1">
+                                    <?php if ((int) $it['destaque'] === 1): ?>
+                                        <span class="tag tag-chef"><?= icone('estrela', '', 12) ?> Escolha do Chef</span>
+                                    <?php endif; ?>
+                                    <?php foreach (etiquetas_ementa($it['etiquetas']) as $et): ?>
+                                        <span class="tag <?= classe_etiqueta($et) ?>"><?= e(rotulo_etiqueta($et)) ?></span>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
                         </div>
                     </td>
                     <td><span class="etiqueta badge-neutro"><?= icone_categoria((string) $it['icone_svg']) ?> <?= e($it['categoria']) ?></span></td>
@@ -205,6 +217,7 @@ require_once __DIR__ . '/includes/cabecalho.php';
                                     data-disponivel="<?= (int) $it['disponivel'] ?>"
                                     data-etiquetas="<?= e((string) ($it['etiquetas'] ?? '')) ?>"
                                     data-destaque="<?= (int) $it['destaque'] ?>"
+                                    data-imagem="<?= e((string) ($it['imagem_url'] ?? '')) ?>"
                                     title="Editar"><?= icone('edicao', '', 14) ?></button>
                             <form method="post" style="display:inline" onsubmit="return confirm('Eliminar este item da ementa?')">
                                 <input type="hidden" name="acao" value="eliminar_item">
@@ -255,6 +268,18 @@ require_once __DIR__ . '/includes/cabecalho.php';
                     <input type="number" name="preco" id="itemPreco" step="0.01" min="0.01" required placeholder="0.00">
                 </label>
             </div>
+
+            <label class="campo">
+                <span>Fotografia do prato (URL)</span>
+                <div class="entre" style="align-items:stretch">
+                    <input type="url" name="imagem_url" id="itemImagemUrl"
+                           placeholder="https://images.unsplash.com/photo-…" style="flex:1">
+                    <img id="itemImagemPreview" alt="" width="48" height="48"
+                         src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=200&q=70&auto=format&fit=crop"
+                         style="width:48px;height:48px;object-fit:cover;border-radius:6px;border:1px solid var(--borda);flex:none">
+                </div>
+                <small class="texto-3">Ligação directa para a imagem (JPG/PNG/WebP). Vazio = imagem genérica.</small>
+            </label>
 
             <label class="campo">
                 <span>Etiquetas (separadas por vírgula)</span>
@@ -343,9 +368,22 @@ require_once __DIR__ . '/includes/cabecalho.php';
         preco: document.getElementById('itemPreco'),
         disp: document.getElementById('itemDisponivel'),
         etiquetas: document.getElementById('itemEtiquetas'),
-        destaque: document.getElementById('itemDestaque')
+        destaque: document.getElementById('itemDestaque'),
+        imagem: document.getElementById('itemImagemUrl'),
+        preview: document.getElementById('itemImagemPreview')
     };
     var titulo = document.getElementById('tituloModalItem');
+    var fallback = 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=200&q=70&auto=format&fit=crop';
+
+    function actualizarPreview() {
+        var url = f.imagem.value.trim();
+        f.preview.src = url !== '' ? url : fallback;
+    }
+
+    if (f.imagem) {
+        f.imagem.addEventListener('input', actualizarPreview);
+        f.imagem.addEventListener('change', actualizarPreview);
+    }
 
     function limpar() {
         f.id.value = '0';
@@ -355,6 +393,8 @@ require_once __DIR__ . '/includes/cabecalho.php';
         f.disp.checked = true;
         f.etiquetas.value = '';
         f.destaque.checked = false;
+        f.imagem.value = '';
+        actualizarPreview();
         titulo.textContent = 'Novo item';
     }
 
@@ -372,6 +412,8 @@ require_once __DIR__ . '/includes/cabecalho.php';
             f.disp.checked = btn.getAttribute('data-disponivel') === '1';
             f.etiquetas.value = btn.getAttribute('data-etiquetas') || '';
             f.destaque.checked = btn.getAttribute('data-destaque') === '1';
+            f.imagem.value = btn.getAttribute('data-imagem') || '';
+            actualizarPreview();
             titulo.textContent = 'Editar item';
             window.saborproAbrirModal('modalItem');
         });

@@ -652,7 +652,18 @@
     function initAutoRefresh() {
         const alvo = document.body.getAttribute('data-auto-refresh');
         if (!alvo) return;
-        setTimeout(function () { window.location.reload(); }, Number(alvo) * 1000);
+
+        setTimeout(function () {
+            // Não recarrega enquanto o utilizador está a editar ou com um modal aberto
+            const foco = document.activeElement;
+            const aEditar = foco && /^(INPUT|SELECT|TEXTAREA)$/.test(foco.tagName);
+            const modalAberto = document.querySelector('.modal.aberto');
+            if (aEditar || modalAberto) {
+                initAutoRefresh();
+                return;
+            }
+            window.location.reload();
+        }, Number(alvo) * 1000);
     }
 
     /* ---------------------- BASE PATH -------------------------- */
@@ -662,6 +673,40 @@
         return dir === '/' ? '' : dir;
     }
     window.saborproBase = basePath;
+
+    /* ------------------ IMAGENS: FALLBACK LOCAL ----------------- */
+
+    function initImagensFallback() {
+        const placeholder = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">' +
+            '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">' +
+            '<stop offset="0" stop-color="#F3E9DA"/><stop offset="1" stop-color="#E2D0B6"/>' +
+            '</linearGradient></defs>' +
+            '<rect width="400" height="300" fill="url(#g)"/>' +
+            '<circle cx="200" cy="138" r="52" fill="none" stroke="#B99A6E" stroke-width="3" opacity=".55"/>' +
+            '<circle cx="200" cy="138" r="34" fill="none" stroke="#B99A6E" stroke-width="2" opacity=".35"/>' +
+            '<path d="M150 216h100" stroke="#B99A6E" stroke-width="3" opacity=".45" stroke-linecap="round"/>' +
+            '</svg>'
+        );
+
+        document.addEventListener('error', function (ev) {
+            const img = ev.target;
+            if (!img || img.tagName !== 'IMG' || img.dataset.falhouImagem === '1') return;
+            if (img.id === 'itemImagemPreview') return;
+            img.dataset.falhouImagem = '1';
+            img.src = placeholder;
+        }, true);
+
+        // Imagens que já falharam antes de o script arrancar
+        document.querySelectorAll('img').forEach(function (img) {
+            if (img.complete && img.naturalWidth === 0 && img.id !== 'itemImagemPreview') {
+                img.dataset.falhouImagem = '1';
+                img.src = placeholder;
+            }
+        });
+    }
+
+    initImagensFallback();
 
     /* ---------------------- ARRANQUE --------------------------- */
 
@@ -674,6 +719,7 @@
         initCarrinho();
         initCarrinhoPublico();
         initFiltroPublico();
+        initImagensFallback();
         initAutoRefresh();
     });
 })();

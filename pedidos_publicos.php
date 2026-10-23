@@ -156,7 +156,7 @@ try {
         'total'     => number_format($total, 2, ',', '.') . ' €',
         'tipo'      => $tipo,
         'mensagem'  => $tipo === 'Takeaway'
-            ? 'Recebemos o seu pedido para entrega. Estimate 20 minutos.'
+            ? 'Recebemos o seu pedido. Ficará pronto em cerca de 20 minutos.'
             : 'Recebemos o seu pedido. A mesa está a ser servida.',
     ]);
 } catch (Throwable $e) {

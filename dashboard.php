@@ -12,8 +12,9 @@ require_once __DIR__ . '/includes/icones.php';
 
 exigir_login();
 
-$paginaTitulo = 'Área de Gestão';
+$paginaTitulo = 'Painel de Operações';
 $paginaAtiva  = 'gestao';
+$autoRefresh  = 90;
 $alertas = [];
 
 require_once __DIR__ . '/includes/cabecalho.php';

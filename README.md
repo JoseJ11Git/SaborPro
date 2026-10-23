@@ -1,14 +1,14 @@
 # SaborPro
 
 **Sistema Inteligente de Pedidos e Gestão para Restaurante / Cafetaria**
-PHP puro + MySQL + CSS3 + Vanilla JavaScript. Sem frameworks, sem CDNs, sem dependências externas.
+PHP puro + MySQL + HTML5 + CSS3 + JavaScript (vanilla). Sem frameworks, sem NPM, sem CDNs.
 
-A aplicação está dividida em **duas áreas totalmente distintas**:
+A aplicação está dividida em **duas áreas com linguagens visuais distintas**:
 
 | Área | Ficheiros | Tema | Acesso |
 |---|---|---|---|
-| 🌤️ **Site público do restaurante** | `index.php` | Claro e acolhedor (`#FDFBF7` / `#1C1917`) | Livre — encomendas sem registo |
-| 🌙 **Portal de gestão** | `gestao.php`, `dashboard.php`, `mesas.php`, `ementa.php`, `pedidos.php`, `cozinha.php` | Escuro e profissional (`#0F172A`) | Apenas utilizadores autenticados |
+| 🍷 **Site público do restaurante** | `index.php` | Claro de luxo — creme `#FAFAF9`, dourado `#D97706`, vinho `#991B1B` | Livre — encomendas sem registo |
+| 🖥️ **Portal de gestão** | `gestao.php`, `dashboard.php`, `mesas.php`, `ementa.php`, `pedidos.php`, `cozinha.php` | Técnico claro — `#F1F5F9`, cartões brancos, sombras finas | Sessão autenticada |
 
 ---
 
@@ -16,68 +16,84 @@ A aplicação está dividida em **duas áreas totalmente distintas**:
 
 ```
 SaborPro/
-├── base_dados.sql            # Criação da BD (utf8mb4) + dados de demonstração
-├── ligacao.php               # Ligação MySQLi + sessão + helpers + migração idempotente
-├── index.php                 # SITE PÚBLICO: hero, história, ementa, carrinho sem login
-├── gestao.php                # PORTAL: login da equipa + painel principal
-├── dashboard.php             # Atalho para o painel de gestão (mesmo conteúdo)
-├── mesas.php                 # SIMULADOR DE PLANTA DE SALA 2D (mesas clicáveis)
-├── ementa.php                # CRUD de itens e categorias + etiquetas + destaque
-├── pedidos.php               # Ecrã POS interno (service de mesa)
+├── base_dados.sql            # BD (utf8mb4) + 12 pratos com fotografia + pedidos de demonstração
+├── ligacao.php               # MySQLi + sessão + helpers + migração idempotente
+├── index.php                 # SITE PÚBLICO: hero fotográfico, história, ementa com fotos, carrinho
+├── gestao.php                # PORTAL: login + painel de operações
+├── dashboard.php             # Atalho para o painel (mesmo conteúdo)
+├── mesas.php                 # PLANTA DE SALA 2D — desenho SVG de mesas, cadeiras e balcão
+├── ementa.php                # CRUD de itens/categorias, etiquetas, destaque e fotografia
+├── pedidos.php               # POS interno (serviço de mesa)
 ├── cozinha.php               # KDS — ecrã da cozinha com avanço de estado em 1 clique
-├── pedidos_publicos.php      # Endpoint JSON dos pedidos do site público (sem login)
+├── pedidos_publicos.php      # Endpoint JSON dos pedidos do site (sem login)
 ├── logout.php                # Encerramento seguro de sessão
 ├── api/
 │   ├── pedido.php            # Registo de pedidos do POS interno
-│   └── mesa.php              # API da planta 2D (detalhe, adicionar, fechar conta)
+│   ├── mesa.php              # Planta 2D: detalhe, adicionar item, fechar conta, mudar estado
+│   └── ementa_rapida.php     # Edição rápida de preço/stock (JSON, usada no painel)
 ├── includes/
-│   ├── cabecalho.php         # Cabeçalho/nav do portal (tema escuro)
+│   ├── cabecalho.php         # Cabeçalho/nav do portal
 │   ├── rodape.php            # Rodapé do portal
-│   ├── painel_resumo.php     # Conteúdo do dashboard (partilhado por gestao/dashboard)
-│   └── icones.php            # Ícones SVG 100% inline (sem bibliotecas)
-├── css/estilo.css            # Design system com DUAS zonas de estilo
-└── js/main.js                # Carrinhos, modais, alertas, validação, filtros, toast
+│   ├── painel_resumo.php     # Dashboard: KPIs, monitor de pedidos e controlo de ementa
+│   └── icones.php            # Ícones SVG inline (sem bibliotecas)
+├── css/estilo.css            # Design system com duas zonas de estilo + planta de sala
+└── js/main.js                # Carrinhos, modais, alertas, validação, filtros, toast, auto-refresh
 ```
 
-## 2. Como está implementado o "duplo tema"
+## 2. Duplo tema
 
-O CSS define o **tema público** em `:root` (claro/quente) e o **tema de gestão** num bloco
-`.tema-gestao` que sobrescreve todas as variáveis (cores, sombras, fundos das tabelas, etc.).
-Cada página aplica a zona correspondente no `<body>`:
+O CSS define o **tema público** em `:root` e o **tema de gestão** no bloco `.tema-gestao`,
+que sobrescreve variáveis (cores, raios, sombras, fundo, tabelas). Cada página aplica a zona no `<body>`:
 
 ```html
 <body class="tema-publico">   <!-- site do cliente -->
 <body class="tema-gestao">    <!-- portal de gestão -->
 ```
 
-As restantes páginas do portal usam `includes/cabecalho.php`, que já aplica `tema-gestao`.
+Tipografia: títulos com pilha serifada (`Georgia`) no site público; sans-serif condensada no portal.
+O fundo do portal tem uma grelha técnica subtil e os cartões usam `border: 1px solid #E2E8F0`
+com sombra de 1 px.
 
 ## 3. Site público (cliente)
 
-- **Hero** com saudação, horário, moração e botão *«Ver Ementa & Pedir»*.
-- **A Nossa História** — filosofia da cozinha, produto local e valores.
-- **Ementa digital** — cartões com cor por categoria (Entradas = Laranja, Pratos = Vermelho,
-  Bebidas = Azul, Sobremesas = Dourado), etiquetas (`Vegetariano`, `Novidade`, `Escolha do Chef`,
-  `Picante`, `Sem Glúten`) e botão **+** animado.
-- **Carrinho flutuante** (gaveta lateral animada) **sem login**:
-  - escolha entre **Takeaway** e **Na Mesa** (com número da mesa);
+- **Hero fotográfico** com overlay em gradiente, tipografia serifada, selo circular e botão
+  *«Explorar Ementa»*; horário, morada e telefone em rodapé de hero.
+- **A Nossa História** — três fotografias reais (sala, cozinha, prato), texto editorial,
+  assinatura da chef e indicadores (28 anos, 5 produtores, 4,8/5).
+- **Ementa digital** — cartões com fotografia real (Unsplash), preço sobre a imagem,
+  selo *Recomendação do Chef*, etiquetas (`Vegetariano`, `Novidade`, `Sem Glúten`, `Picante`).
+  Filtros por categoria e pesquisa em tempo real.
+- **Carrinho flutuante** (gaveta lateral) **sem login**:
+  - Takeaway ou Na Mesa (com número da mesa);
   - nome, telefone e observações;
-  - envio via `pedidos_publicos.php` → o pedido entra directamente na cozinha (estado `Pendente`);
-  - notificação de sucesso animada (toast).
-- **Acesso Reservado** discreto no cabeçalho e no rodapé → abre o login do portal.
+  - envio via `pedidos_publicos.php` → entra directamente na cozinha como `Pendente`;
+  - toast de confirmação com o total.
+- **Acesso Reservado** discreto no cabeçalho e no rodapé → `gestao.php`.
+
+As fotografias dos pratos vêm da coluna `ementa.imagem_url`. Se uma imagem falhar, o
+`js/main.js` substitui-a por um marcador SVG local — o layout nunca quebra offline.
 
 ## 4. Portal de gestão
 
-- `gestao.php` — sem sessão mostra o **ecrã de login** (tema escuro); com sessão, o **painel principal**:
-  Total Faturado Hoje, Pedidos Ativos, Ocupação de Mesas, Prato Mais Vendido, últimas vendas
-  (distinguindo Takeaway de Na Mesa) e distribuição por estado.
-- `mesas.php` — **planta da sala em 2D** com mesas redondas e retangulares posicionadas em coordenadas
-  percentuais, côzinha/balcão/varanda desenhados, cores dinâmicas por estado e **luz pulsante**
-  nas mesas ocupadas. Clicar numa mesa abre um modal com a conta, atalho para adicionar itens e
-  botão **Fechar conta**.
-- `ementa.php` — CRUD completo, etiquetas, destaque do chef, disponibilidade e preços.
+- `gestao.php` — ecrã de login em duas colunas (apresentação + cartão) e, após sessão, o painel.
+- **Painel de operações**
+  - KPIs: **Faturação do dia**, **Ocupação da sala (%)**, **Pedidos pendentes**, **Encomendas do site**;
+  - **Monitor de pedidos do site** com barra pulsante e destaque azul nos takeaway por confirmar;
+  - **Controlo de ementa** com preço editável em linha e interruptor de stock, gravando via
+    `api/ementa_rapida.php` (JSON) sem recarregar a página;
+  - fluxo de pedidos por estado e últimas vendas;
+  - actualização automática a cada 90 s, suspensa enquanto edita um campo ou tem um modal aberto.
+- `mesas.php` — **planta de sala 2D realista**:
+  - chão de madeira em gradientes CSS e zonas fixas (cozinha, varanda, entrada);
+  - **mesas redondas com 2/4/6 cadeiras** e **mesas retangulares/familiares** com cadeiras nos dois lados,
+    desenhadas em SVG com tampo, aro, veios e sombra;
+  - **balcão com 4 bancos de bar** desenhado em SVG;
+  - cores por estado: **Livre** (verde), **Ocupada** (vermelho, com pulsação e tempo decorrido),
+    **Reservada** (dourado); total activo visível sobre a mesa;
+  - clique abre a conta, permite adicionar pratos, alterar estado ou **fechar conta**.
+- `ementa.php` — CRUD completo com fotografia (URL + pré-visualização), etiquetas e destaque.
 - `pedidos.php` — POS interno com filtro de categorias e carrinho.
-- `cozinha.php` — KDS com 1 clique: *Iniciar Preparação → Marcar como Pronto → Servir/Entregar*.
+- `cozinha.php` — KDS com 1 clique: *Iniciar Preparação → Pronto → Servir/Entregar*.
 
 ## 5. Instalação no Laragon
 
@@ -89,36 +105,37 @@ As restantes páginas do portal usam `includes/cabecalho.php`, que já aplica `t
      ```
 3. Aceda a `http://localhost/SaborPro/`.
 
-> **Nota:** importe sempre com `--default-character-set=utf8mb4` (ou pelo phpMyAdmin) para não
-> corromper os acentos. O ficheiro já inclui `SET NAMES utf8mb4;`.
+> **Nota:** importe sempre com `--default-character-set=utf8mb4` para não corromper acentos.
+> O ficheiro já inclui `SET NAMES utf8mb4;`.
 
 ### Migração automática
 
-`ligacao.php` executa uma migração **idempotente** que adiciona as colunas novas
-(`ementa.etiquetas`, `ementa.destaque`, `pedidos.tipo_pedido`, `pedidos.cliente_nome`,
-`pedidos.cliente_telefone`, `pedidos.observacoes`) e a mesa `Balcão` (nº 0) caso ainda não existam.
-Assim, bases de dados instaladas antes da refatorização continuam a funcionar.
+`ligacao.php` executa uma migração **idempotente** que acrescenta colunas novas
+(`ementa.etiquetas`, `ementa.destaque`, `ementa.imagem_url`, `pedidos.tipo_pedido`,
+`pedidos.cliente_nome`, `pedidos.cliente_telefone`, `pedidos.observacoes`) e a mesa
+`Balcão` (nº 0). Bases de dados antigas continuam a funcionar.
 
-## 6. Contas de demonstração
+## 6. Conta de demonstração
 
 | Perfil | E-mail | Palavra-passe |
 |---|---|---|
 | Administração | `admin@saborpro.pt` | `123456` |
-| Empregado (mesa) | `empregado@saborpro.pt` | `123456` |
-| Cozinha (KDS) | `cozinha@saborpro.pt` | `123456` |
+
+Existe **apenas esta conta** na tabela `utilizadores` (demonstração).
 
 ## 7. Migrar para servidor remoto
 
-Edite o array `$CFG_REMOTO` em `ligacao.php` (host `lab.csmiguel.pt`, utilizador, password, base).
-A deteção é automática: `localhost` / `127.0.0.1` → credenciais locais; qualquer outro host →
-credenciais do servidor remoto. Também é possível forçar via `SABORPRO_DB_HOST`,
-`SABORPRO_DB_USER`, `SABORPRO_DB_PASS` e `SABORPRO_DB_BASE`.
+Edite `$CFG_REMOTO` em `ligacao.php` (host, utilizador, password, base). A detecção é automática:
+`localhost` / `127.0.0.1` → credenciais locais; qualquer outro host → servidor remoto.
+Também pode forçar via `SABORPRO_DB_HOST`, `SABORPRO_DB_USER`, `SABORPRO_DB_PASS` e `SABORPRO_DB_BASE`.
 
 ## 8. Notas técnicas
 
-- Todos os SQL usam **prepared statements** (mysqli) com `utf8mb4`.
-- Os preços dos pedidos são sempre recalculados **no servidor** a partir da tabela `ementa`.
+- Todo o SQL usa **prepared statements** (mysqli) com `utf8mb4`.
+- Os preços dos pedidos são recalculados **no servidor** a partir da tabela `ementa`.
 - Senhas com `password_hash()` / `password_verify()`; `session_regenerate_id(true)` no login.
-- Ícones: SVG inline em `includes/icones.php` — nenhuma dependência externa.
-- O pedido público é gravado na mesma tabela `pedidos`, com `tipo_pedido = 'Takeaway' | 'Na Mesa'`,
-  e aparece imediatamente no ecrã da cozinha.
+- Ícones e planta de sala: **SVG inline**, sem dependências externas.
+- Única dependência externa: fotografias de pratos alojadas no Unsplash (`images.unsplash.com`).
+  Todas as URLs do seed foram verificadas (`HTTP 200`, `image/jpeg`).
+- O pedido público é gravado na tabela `pedidos` com `tipo_pedido = 'Takeaway' | 'Na Mesa'`
+  e aparece imediatamente no painel e no ecrã da cozinha.

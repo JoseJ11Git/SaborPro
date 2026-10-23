@@ -127,8 +127,9 @@ function saborpro_migrar(mysqli $bd): void
 
     $colunas = [
         'ementa'  => [
-            'etiquetas' => "ADD COLUMN etiquetas VARCHAR(120) DEFAULT NULL AFTER disponivel",
-            'destaque'  => 'ADD COLUMN destaque TINYINT(1) NOT NULL DEFAULT 0 AFTER etiquetas',
+            'etiquetas'  => "ADD COLUMN etiquetas VARCHAR(120) DEFAULT NULL AFTER disponivel",
+            'destaque'   => 'ADD COLUMN destaque TINYINT(1) NOT NULL DEFAULT 0 AFTER etiquetas',
+            'imagem_url' => 'ADD COLUMN imagem_url VARCHAR(500) DEFAULT NULL AFTER destaque',
         ],
         'pedidos' => [
             'tipo_pedido'       => "ADD COLUMN tipo_pedido ENUM('Takeaway','Na Mesa') NOT NULL DEFAULT 'Na Mesa' AFTER estado",
@@ -190,7 +191,7 @@ function utilizador_atual(): array
 }
 
 /** Verifica se o utilizador tem um dos tipos indicados. */
-function tem_pape(array|p|string $papeis): bool
+function tem_pape(array|string $papeis): bool
 {
     if (!autenticado()) {
         return false;
@@ -200,7 +201,7 @@ function tem_pape(array|p|string $papeis): bool
 }
 
 /** Exige login (e opcionalmente um papel) redirecionando se necessário. */
-function exigir_login(array|p|string $papeis = []): void
+function exigir_login(array|string $papeis = []): void
 {
     if (!autenticado()) {
         header('Location: index.php?erro=sessao');
@@ -230,6 +231,45 @@ function data_hora(?string $dt): string
         return '—';
     }
     return date('d/m/Y H:i', $ts);
+}
+
+/**
+ * Tempo decorrido desde uma data/hora, em minutos.
+ * Devolve um array com o total de minutos e um texto curto legível.
+ */
+function tempo_decorrido(?string $dt): array
+{
+    if (!$dt) {
+        return ['min' => 0, 'texto' => '—'];
+    }
+    $ts = strtotime($dt);
+    if ($ts === false) {
+        return ['min' => 0, 'texto' => '—'];
+    }
+    $min = max(0, (int) floor((time() - $ts) / 60));
+
+    if ($min < 1) {
+        $texto = 'agora mesmo';
+    } elseif ($min < 60) {
+        $texto = 'há ' . $min . ' min';
+    } elseif ($min < 1440) {
+        $texto = 'há ' . intdiv($min, 60) . ' h ' . str_pad((string) ($min % 60), 2, '0', STR_PAD_LEFT) . ' min';
+    } else {
+        $texto = 'há ' . intdiv($min, 1440) . ' dia(s)';
+    }
+
+    return ['min' => $min, 'texto' => $texto];
+}
+
+/** Devolve uma imagem de recurso caso o prato não tenha fotografia. */
+function imagem_prato(?string $url): string
+{
+    $url = trim((string) $url);
+    if ($url !== '' && preg_match('~^https?://~i', $url)) {
+        return $url;
+    }
+    // Fotografia genérica de mesa/postura (Unsplash) usada como fallback
+    return 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=900&q=80&auto=format&fit=crop';
 }
 
 /** Classe CSS consoante o estado do pedido. */
