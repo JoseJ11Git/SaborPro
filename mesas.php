@@ -40,15 +40,15 @@ $r->free();
 
 /**
  * Planta: posição central (%) + formato de cada mesa.
- * Ajuste livremente para reproduzir a sala real.
+ * Vista única da sala, sem divisões por zonas.
  */
 $planta = [
-    1 => ['forma' => 'redonda',    'x' => 33, 'y' => 22],
-    2 => ['forma' => 'redonda',    'x' => 53, 'y' => 20],
-    3 => ['forma' => 'redonda',    'x' => 33, 'y' => 55],
-    4 => ['forma' => 'redonda',    'x' => 53, 'y' => 53],
-    5 => ['forma' => 'retangular', 'x' => 73, 'y' => 33],
-    6 => ['forma' => 'retangular', 'x' => 73, 'y' => 70],
+    1 => ['forma' => 'redonda',    'x' => 27, 'y' => 27],
+    2 => ['forma' => 'redonda',    'x' => 54, 'y' => 25],
+    3 => ['forma' => 'redonda',    'x' => 27, 'y' => 61],
+    4 => ['forma' => 'redonda',    'x' => 54, 'y' => 59],
+    5 => ['forma' => 'retangular', 'x' => 79, 'y' => 35],
+    6 => ['forma' => 'retangular', 'x' => 79, 'y' => 72],
 ];
 
 $resumo = ['Livre' => 0, 'Ocupada' => 0, 'Reservada' => 0];
@@ -107,32 +107,48 @@ function cadeiras_retangulares(int $n, float $x1, float $x2, float $ytopo, float
     return $svg;
 }
 
-/** Devolve o SVG completo de uma mesa (vista de cima). */
+/** Devolve o SVG completo de uma mesa em madeira (vista de cima). */
 function desenhar_mesa(array $m, string $forma): string
 {
     $numero   = (int) $m['numero'];
     $lugares  = max(2, (int) $m['capacidade']);
-    $estado   = (string) $m['estado'];
+    $gid      = 'madeira-' . $numero;
+
+    $defs = '<defs>'
+        . '<linearGradient id="' . $gid . '" x1="0" y1="0" x2="1" y2="1">'
+        . '<stop offset="0" stop-color="#D9B382"/>'
+        . '<stop offset=".42" stop-color="#C39360"/>'
+        . '<stop offset=".72" stop-color="#B07C4A"/>'
+        . '<stop offset="1" stop-color="#95643A"/>'
+        . '</linearGradient>'
+        . '</defs>';
 
     if ($forma === 'redonda') {
         $cx = 95; $cy = 95; $r = 50;
         $cadeiras = cadeiras_redondas(min($lugares, 6), $cx, $cy, 82);
 
+        /* Veios de madeira (linhas suaves) */
         $riscos = '';
-        for ($i = 0; $i < 5; $i++) {
-            $off = -18 + $i * 9;
-            $riscos .= sprintf('<line x1="%d" y1="%d" x2="%d" y2="%d" class="risco"/>', $cx - 30, $cy + $off, $cx + 30, $cy + $off);
+        for ($i = 0; $i < 6; $i++) {
+            $off = -24 + $i * 9.5;
+            $riscos .= sprintf(
+                '<line x1="%d" y1="%d" x2="%d" y2="%d" class="risco"/>',
+                $cx - 34, (int) ($cy + $off), $cx + 34, (int) ($cy + $off)
+            );
         }
+        $riscos .= '<ellipse cx="' . $cx . '" cy="' . $cy . '" rx="30" ry="30" class="risco-aro"/>';
+        $riscos .= '<ellipse cx="' . $cx . '" cy="' . $cy . '" rx="20" ry="20" class="risco-aro"/>';
 
         return '<svg class="mesa-svg" viewBox="0 0 190 190" role="img" aria-label="Mesa ' . $numero . '">'
-            . '<ellipse cx="95" cy="102" rx="56" ry="14" fill="rgba(80,55,30,.16)"/>'
+            . $defs
+            . '<ellipse cx="95" cy="104" rx="58" ry="15" fill="rgba(60,38,18,.14)"/>'
             . $cadeiras
-            . '<circle cx="' . $cx . '" cy="' . $cy . '" r="' . $r . '" class="tampo"/>'
+            . '<circle cx="' . $cx . '" cy="' . $cy . '" r="' . $r . '" class="tampo" style="fill:url(#' . $gid . ')"/>'
             . $riscos
-            . '<circle cx="' . $cx . '" cy="' . $cy . '" r="' . ($r - 12) . '" class="aro-int"/>'
+            . '<circle cx="' . $cx . '" cy="' . $cy . '" r="' . ($r - 11) . '" class="aro-int"/>'
             . '<circle cx="' . $cx . '" cy="' . $cy . '" r="' . $r . '" class="aro"/>'
-            . '<text x="' . $cx . '" y="' . ($cy - 5) . '" class="num" font-size="24">' . $numero . '</text>'
-            . '<text x="' . $cx . '" y="' . ($cy + 17) . '" class="lug" font-size="9">' . min($lugares, 6) . ' LUG.</text>'
+            . '<text x="' . $cx . '" y="' . ($cy - 6) . '" class="num" font-size="30">' . $numero . '</text>'
+            . '<text x="' . $cx . '" y="' . ($cy + 16) . '" class="lug" font-size="8.5">' . min($lugares, 6) . ' LUGARES</text>'
             . '</svg>';
     }
 
@@ -141,24 +157,28 @@ function desenhar_mesa(array $m, string $forma): string
     $cadeiras = cadeiras_retangulares($lugares, $x + 6, $x + $w - 6, $y, $y + $h);
 
     $riscos = '';
-    for ($i = 0; $i < 4; $i++) {
-        $off = -18 + $i * 12;
-        $riscos .= sprintf('<line x1="%d" y1="%d" x2="%d" y2="%d" class="risco"/>', $x + 14, $y + $h / 2 + $off, $x + $w - 14, $y + $h / 2 + $off);
+    for ($i = 0; $i < 5; $i++) {
+        $off = -22 + $i * 11;
+        $riscos .= sprintf(
+            '<line x1="%d" y1="%d" x2="%d" y2="%d" class="risco"/>',
+            $x + 14, (int) ($y + $h / 2 + $off), $x + $w - 14, (int) ($y + $h / 2 + $off)
+        );
     }
 
     return '<svg class="mesa-svg" viewBox="0 0 260 170" role="img" aria-label="Mesa ' . $numero . '">'
-        . '<ellipse cx="130" cy="92" rx="74" ry="16" fill="rgba(80,55,30,.16)"/>'
+        . $defs
+        . '<ellipse cx="130" cy="96" rx="76" ry="17" fill="rgba(60,38,18,.14)"/>'
         . $cadeiras
-        . '<rect x="' . $x . '" y="' . $y . '" width="' . $w . '" height="' . $h . '" rx="8" class="tampo"/>'
+        . '<rect x="' . $x . '" y="' . $y . '" width="' . $w . '" height="' . $h . '" rx="9" class="tampo" style="fill:url(#' . $gid . ')"/>'
         . $riscos
-        . '<rect x="' . ($x + 12) . '" y="' . ($y + 10) . '" width="' . ($w - 24) . '" height="' . ($h - 20) . '" rx="5" class="aro-int"/>'
-        . '<rect x="' . $x . '" y="' . $y . '" width="' . $w . '" height="' . $h . '" rx="8" class="aro"/>'
-        . '<text x="130" y="84" class="num" font-size="24">' . $numero . '</text>'
-        . '<text x="130" y="102" class="lug" font-size="9">' . $lugares . ' LUG.</text>'
+        . '<rect x="' . ($x + 11) . '" y="' . ($y + 9) . '" width="' . ($w - 22) . '" height="' . ($h - 18) . '" rx="6" class="aro-int"/>'
+        . '<rect x="' . $x . '" y="' . $y . '" width="' . $w . '" height="' . $h . '" rx="9" class="aro"/>'
+        . '<text x="130" y="82" class="num" font-size="30">' . $numero . '</text>'
+        . '<text x="130" y="101" class="lug" font-size="8.5">' . $lugares . ' LUGARES</text>'
         . '</svg>';
 }
 
-$paginaTitulo = 'Planta da Sala 2D';
+$paginaTitulo = 'Mesas';
 $paginaAtiva  = 'mesas';
 
 require_once __DIR__ . '/includes/cabecalho.php';
@@ -166,8 +186,8 @@ require_once __DIR__ . '/includes/cabecalho.php';
 
 <div class="cabecalho-pagina entre-topo">
     <div>
-        <h1 class="mb-0">Planta da Sala</h1>
-        <p class="subtitulo">Vista de cima · clique numa mesa para abrir a conta, adicionar pratos ou fechar.</p>
+        <h1 class="mb-0">Mesas</h1>
+        <p class="subtitulo">Vista única da sala · clique numa mesa para abrir a conta, adicionar pratos ou fechar.</p>
     </div>
     <div class="d-flex-wrap">
         <span class="etiqueta estado-pronto"><span class="ponto"></span><?= (int) $resumo['Livre'] ?> livres</span>
@@ -184,71 +204,16 @@ require_once __DIR__ . '/includes/cabecalho.php';
             <span><i class="ocupada"></i> Ocupada com pedido ativo</span>
             <span><i class="reservada"></i> Reservada</span>
         </div>
-        <span class="pequeno texto-3">Actualizado às <?= date('H:i') ?> · <?= count($mesas) ?> mesas + balcão</span>
+        <span class="pequeno texto-3">Actualizado às <?= date('H:i') ?> · <?= count($mesas) ?> mesas</span>
     </div>
 
-    <!-- ===================== PLANTA ===================== -->
+    <!-- ===================== MESAS ===================== -->
     <div class="sala" id="sala">
-
-        <!-- Zonas fixas -->
-        <div class="zona" style="left:2.5%;top:4%;width:15%;height:23%">
-            <?= icone('janela') ?><span>Varanda</span>
-        </div>
-        <div class="zona cozinha" style="left:83%;top:4%;width:14%;height:23%">
-            <?= icone('cozinha') ?><span>Cozinha</span>
-        </div>
-        <div class="zona" style="left:83%;top:34%;width:14%;height:20%">
-            <?= icone('tenda-2') ?><span>Entrada</span>
-        </div>
-
-        <!-- Balcão com bancos de bar -->
-        <svg class="balcao-desenho" viewBox="0 0 130 250"
-             style="left:2%;top:42%;width:14%;height:52%"
-             role="img" aria-label="Balcão com bancos de bar">
-            <rect x="16" y="8" width="98" height="150" rx="10"
-                  fill="#FBF7F0" stroke="#A98A63" stroke-width="2.5"/>
-            <rect x="24" y="16" width="82" height="30" rx="5"
-                  fill="#E8D5B7" stroke="#A98A63" stroke-width="1.6"/>
-            <line x1="24" y1="76" x2="106" y2="76" stroke="#C9B08D" stroke-width="1.2"/>
-            <line x1="24" y1="112" x2="106" y2="112" stroke="#C9B08D" stroke-width="1.2"/>
-            <g stroke="#A98A63" stroke-width="1.6" fill="#F5E9D7">
-                <circle cx="40" cy="178" r="17"/>
-                <circle cx="90" cy="178" r="17"/>
-                <circle cx="40" cy="222" r="17"/>
-                <circle cx="90" cy="222" r="17"/>
-            </g>
-            <g fill="#C9B08D">
-                <circle cx="40" cy="178" r="5"/>
-                <circle cx="90" cy="178" r="5"/>
-                <circle cx="40" cy="222" r="5"/>
-                <circle cx="90" cy="222" r="5"/>
-            </g>
-            <text x="65" y="98" text-anchor="middle" font-size="11" font-weight="700"
-                  fill="#8A6A45" letter-spacing="1.5">BALCÃO</text>
-            <text x="65" y="114" text-anchor="middle" font-size="8"
-                  fill="#A98A63" letter-spacing="1">4 BANCOS</text>
-        </svg>
-
-        <!-- Plantas decorativas -->
-        <svg class="balcao-desenho" viewBox="0 0 60 60" style="left:20%;top:4%;width:5.5%;height:10%" aria-hidden="true">
-            <circle cx="30" cy="34" r="18" fill="#DCEFE0" stroke="#7FAE8B" stroke-width="2"/>
-            <circle cx="30" cy="34" r="8" fill="#B7DCC0"/>
-            <path d="M30 34 L30 56" stroke="#8A6A45" stroke-width="2"/>
-        </svg>
-        <svg class="balcao-desenho" viewBox="0 0 60 60" style="left:88%;top:60%;width:5%;height:9%" aria-hidden="true">
-            <circle cx="30" cy="34" r="18" fill="#DCEFE0" stroke="#7FAE8B" stroke-width="2"/>
-            <circle cx="30" cy="34" r="8" fill="#B7DCC0"/>
-            <path d="M30 34 L30 56" stroke="#8A6A45" stroke-width="2"/>
-        </svg>
-
-        <!-- Mesas -->
         <?php foreach ($mesas as $i => $m): ?>
             <?php
             $p        = $planta[(int) $m['numero']] ?? ['forma' => 'redonda', 'x' => 50, 'y' => 50];
             $estado   = (string) $m['estado'];
             $classes  = $estado === 'Ocupada' ? 'estado-ocupada' : ($estado === 'Reservada' ? 'estado-reservada' : 'estado-livre');
-            $tempo    = tempo_decorrido($m['desde'] ?? null);
-            $selo     = $estado === 'Ocupada' ? $tempo['texto'] : ($estado === 'Reservada' ? 'Reservada' : 'Livre');
             $total    = (float) $m['total_ativo'];
             ?>
             <button type="button"
@@ -266,9 +231,7 @@ require_once __DIR__ . '/includes/cabecalho.php';
 
                 <?= desenhar_mesa($m, $p['forma']) ?>
 
-                <span class="mesa-selo">
-                    <span class="ponto-vivo"></span><?= e($selo) ?>
-                </span>
+                <span class="mesa-indicador" title="<?= e($estado) ?>" aria-hidden="true"></span>
             </button>
         <?php endforeach; ?>
     </div>

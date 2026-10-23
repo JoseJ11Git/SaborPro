@@ -3,7 +3,8 @@
  * SaborPro :: api/avaliacao.php
  * -------------------------------------------------------------
  * Recebe uma avaliação do site público (sem login).
- * A avaliação entra com `visivel = 0` e aguarda moderação.
+ * A avaliação é publicada imediatamente (`visivel = 1`) e pode ser
+ * moderada/ocultada mais tarde no portal de gestão.
  *
  * POST JSON: { nome, classificacao, comentario, website (honeypot) }
  */
@@ -60,14 +61,34 @@ if (!empty($_SESSION['ultima_avaliacao']) && ($agora - (int) $_SESSION['ultima_a
     resposta(['ok' => false, 'erro' => 'Aguarde alguns segundos antes de enviar outra avaliação.'], 429);
 }
 
-$stmt = $bd->prepare('INSERT INTO avaliacoes (nome_cliente, classificacao, comentario, visivel) VALUES (?, ?, ?, 0)');
-$stmt->bind_param('sis', $nome, $classificacao, $comentario);
-$stmt->execute();
-$stmt->close();
+try {
+    $stmt = $bd->prepare('INSERT INTO avaliacoes (nome_cliente, classificacao, comentario, visivel) VALUES (?, ?, ?, 1)');
+    if (!$stmt) {
+        resposta(['ok' => false, 'erro' => 'Não foi possível preparar a gravação da avaliação.'], 500);
+    }
+    $stmt->bind_param('sis', $nome, $classificacao, $comentario);
+    $gravou = $stmt->execute();
+    $novoId = (int) $bd->insert_id;
+    $stmt->close();
+} catch (Throwable $erro) {
+    error_log('SaborPro avaliacao: ' . $erro->getMessage());
+    resposta(['ok' => false, 'erro' => 'Não foi possível guardar a avaliação. Tente novamente.'], 500);
+}
+
+if (!$gravou || $novoId <= 0) {
+    resposta(['ok' => false, 'erro' => 'Não foi possível guardar a avaliação. Tente novamente.'], 500);
+}
 
 $_SESSION['ultima_avaliacao'] = $agora;
 
 resposta([
-    'ok'        => true,
-    'mensagem'  => 'Obrigado! A sua avaliação será publicada após aprovação da equipa.',
+    'ok'          => true,
+    'mensagem'    => 'Obrigado! A sua avaliação já está publicada.',
+    'avaliacao'   => [
+        'id'            => $novoId,
+        'nome_cliente'  => $nome,
+        'classificacao' => $classificacao,
+        'comentario'    => $comentario,
+        'criado_em'     => date('Y-m-d H:i:s'),
+    ],
 ]);

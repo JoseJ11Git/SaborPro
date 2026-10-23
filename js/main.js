@@ -600,6 +600,245 @@
         desenhar();
     }
 
+    /* ---------------------- PEDIDO NA PÁGINA DE EMENTA --------------- */
+
+    function initMenuPedido() {
+        const resumo = document.getElementById('menuResumo');
+        if (!resumo) return;
+
+        const lista      = document.getElementById('menuItens');
+        const contador   = document.getElementById('menuContador');
+        const subtotalEl = document.getElementById('menuSubtotal');
+        const totalEl    = document.getElementById('menuTotal');
+        const erroEl     = document.getElementById('menuErro');
+        const enviarBtn  = document.getElementById('menuEnviar');
+        const blocoMesa  = document.getElementById('menuBlocoMesa');
+        const selectMesa = document.getElementById('menuMesa');
+        const blocosQtd  = Array.from(document.querySelectorAll('.menu-qtd'));
+
+        const itens = new Map();
+
+        function money(v) {
+            return (Math.round(v * 100) / 100).toFixed(2).replace('.', ',') + ' €';
+        }
+
+        function nomeItem(item) {
+            return (idiomaAtual === 'en' && item.nomeEn) ? item.nomeEn : item.nome;
+        }
+
+        function totalUnidades() {
+            let n = 0;
+            itens.forEach(function (i) { n += i.qtd; });
+            return n;
+        }
+
+        function totalValor() {
+            let v = 0;
+            itens.forEach(function (i) { v += i.qtd * i.preco; });
+            return v;
+        }
+
+        function atualizarSteppers() {
+            blocosQtd.forEach(function (bloco) {
+                const id = Number(bloco.getAttribute('data-id'));
+                const item = itens.get(id);
+                const qtd = item ? item.qtd : 0;
+                bloco.querySelector('.menu-qtd-valor').textContent = qtd;
+                bloco.classList.toggle('tem', qtd > 0);
+            });
+        }
+
+        function desenharResumo() {
+            lista.innerHTML = '';
+
+            if (!itens.size) {
+                const vazio = document.createElement('li');
+                vazio.className = 'vazio';
+                vazio.textContent = traduzir('menu_order_empty');
+                lista.appendChild(vazio);
+            } else {
+                itens.forEach(function (item) {
+                    const li = document.createElement('li');
+                    li.className = 'menu-resumo-item';
+
+                    const info = document.createElement('div');
+                    info.className = 'menu-resumo-info';
+                    const nome = document.createElement('span');
+                    nome.className = 'nome';
+                    nome.textContent = nomeItem(item);
+                    const detalhe = document.createElement('span');
+                    detalhe.className = 'detalhe';
+                    detalhe.textContent = item.qtd + ' × ' + money(item.preco);
+                    info.appendChild(nome);
+                    info.appendChild(detalhe);
+
+                    const dir = document.createElement('div');
+                    dir.className = 'menu-resumo-dir';
+                    const preco = document.createElement('span');
+                    preco.className = 'preco';
+                    preco.textContent = money(item.qtd * item.preco);
+                    const remover = document.createElement('button');
+                    remover.type = 'button';
+                    remover.className = 'menu-resumo-remover';
+                    remover.setAttribute('data-remover-menu', String(item.id));
+                    remover.setAttribute('aria-label', 'Remover ' + item.nome);
+                    remover.innerHTML = '&times;';
+                    dir.appendChild(preco);
+                    dir.appendChild(remover);
+
+                    li.appendChild(info);
+                    li.appendChild(dir);
+                    lista.appendChild(li);
+                });
+            }
+
+            if (contador) contador.textContent = totalUnidades();
+            if (subtotalEl) subtotalEl.textContent = money(totalValor());
+            if (totalEl) totalEl.textContent = money(totalValor());
+            atualizarSteppers();
+
+            if (erroEl) {
+                erroEl.textContent = '';
+                erroEl.className = 'erro-campo';
+            }
+        }
+
+        blocosQtd.forEach(function (bloco) {
+            bloco.addEventListener('click', function (ev) {
+                const btn = ev.target.closest('[data-qtd]');
+                if (!btn) return;
+
+                const id = Number(bloco.getAttribute('data-id'));
+                const delta = Number(btn.getAttribute('data-qtd'));
+                const existente = itens.get(id);
+                const qtd = (existente ? existente.qtd : 0) + delta;
+
+                if (qtd <= 0) {
+                    itens.delete(id);
+                } else if (existente) {
+                    existente.qtd = qtd;
+                } else {
+                    itens.set(id, {
+                        id: id,
+                        nome: bloco.getAttribute('data-nome') || '',
+                        nomeEn: bloco.getAttribute('data-nome-en') || '',
+                        preco: parseFloat(bloco.getAttribute('data-preco')) || 0,
+                        qtd: qtd
+                    });
+                }
+
+                desenharResumo();
+                if (qtd > 0) {
+                    bloco.querySelector('.menu-qtd-valor').animate(
+                        [{ transform: 'scale(1)' }, { transform: 'scale(1.35)' }, { transform: 'scale(1)' }],
+                        { duration: 260, easing: 'cubic-bezier(.34,1.56,.64,1)' }
+                    );
+                }
+            });
+        });
+
+        lista.addEventListener('click', function (ev) {
+            const btn = ev.target.closest('[data-remover-menu]');
+            if (!btn) return;
+            itens.delete(Number(btn.getAttribute('data-remover-menu')));
+            desenharResumo();
+        });
+
+        /* Takeaway / Na Mesa */
+        document.querySelectorAll('.menu-tipo .opcao-pedido').forEach(function (op) {
+            op.addEventListener('click', function () {
+                document.querySelectorAll('.menu-tipo .opcao-pedido').forEach(function (o) {
+                    o.classList.remove('selecionada');
+                });
+                op.classList.add('selecionada');
+                const takeaway = op.getAttribute('data-opcao') === 'takeaway';
+                if (blocoMesa) blocoMesa.classList.toggle('d-none', takeaway);
+            });
+        });
+
+        /* Enviar pedido */
+        if (enviarBtn) {
+            enviarBtn.addEventListener('click', function () {
+                const mostrarErro = function (msg) {
+                    if (erroEl) {
+                        erroEl.textContent = msg;
+                        erroEl.className = 'erro-campo visivel';
+                    }
+                };
+
+                if (!itens.size) {
+                    mostrarErro(traduzir('menu_order_empty'));
+                    return;
+                }
+
+                const tipoRadio = document.querySelector('input[name="menu_tipo"]:checked');
+                const tipo = tipoRadio ? tipoRadio.value : 'Takeaway';
+                const nome = (document.getElementById('menuNome') || {}).value || '';
+                const tel = (document.getElementById('menuTelefone') || {}).value || '';
+                const obs = (document.getElementById('menuObs') || {}).value || '';
+
+                if (nome.trim().length < 2) {
+                    mostrarErro(traduzir('cart_name') + '.');
+                    document.getElementById('menuNome').focus();
+                    return;
+                }
+                if (tipo === 'Na Mesa' && (!selectMesa || !selectMesa.value)) {
+                    mostrarErro(traduzir('cart_select_table') + '.');
+                    return;
+                }
+
+                enviarBtn.disabled = true;
+                enviarBtn.innerHTML = '<span>' + traduzir('menu_order_sending') + '</span>';
+
+                const corpo = {
+                    tipo: tipo,
+                    mesa_numero: selectMesa ? selectMesa.value : 0,
+                    nome: nome.trim(),
+                    telefone: tel.trim(),
+                    observacoes: obs.trim(),
+                    itens: Array.from(itens.values()).map(function (i) {
+                        return { id: i.id, quantidade: i.qtd };
+                    })
+                };
+
+                fetch(basePath() + '/pedidos_publicos.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(corpo)
+                })
+                .then(function (r) { return r.json(); })
+                .then(function (res) {
+                    if (res && res.ok) {
+                        itens.clear();
+                        document.getElementById('menuNome').value = '';
+                        document.getElementById('menuTelefone').value = '';
+                        document.getElementById('menuObs').value = '';
+                        desenharResumo();
+                        if (window.saborproToast) {
+                            window.saborproToast(res.mensagem || traduzir('toast_text'), res.total);
+                        }
+                    } else {
+                        mostrarErro((res && res.erro) ? res.erro : 'Não foi possível enviar o pedido.');
+                    }
+                    enviarBtn.disabled = false;
+                    enviarBtn.innerHTML = '<span>' + traduzir('cart_finish') + '</span>';
+                })
+                .catch(function () {
+                    mostrarErro('Erro de comunicação com o servidor.');
+                    enviarBtn.disabled = false;
+                    enviarBtn.innerHTML = '<span>' + traduzir('cart_finish') + '</span>';
+                });
+            });
+        }
+
+        /* Redesenho quando o idioma muda (chamado por aplicarIdioma) */
+        window.saborproAtualizarMenu = function () {
+            desenharResumo();
+        };
+
+        desenharResumo();
+    }
+
     /* ---------------------- FILTRO DA EMENTA PÚBLICA --------------- */
 
     function initFiltroPublico() {
@@ -731,6 +970,17 @@
             menu_sub: 'Pedido directo, sem criação de conta. Takeaway ou consumo na mesa.',
             menu_all: 'Tudo', menu_search: 'Procurar um prato…', menu_add: 'Adicionar',
             menu_chef: 'Recomendação do Chef', menu_new: 'Novidade',
+            menu_full_link: 'Ver ementa completa e pedir',
+            menu_page_eyebrow: 'Ementa · Menu',
+            menu_page_title: 'Escolha à mesa,<br><em>nós levamos.</em>',
+            menu_page_sub: 'Produto da estação, receitas de família e preços claros. Escolha os pratos, ajuste as quantidades e finalize o pedido em menos de um minuto.',
+            menu_page_hours: 'Seg–Sáb · 12h–23h',
+            menu_page_takeaway: 'Takeaway em ~20 min',
+            menu_page_dinein: 'Consumo na sala',
+            menu_order_eyebrow: 'O seu pedido', menu_order_title: 'Resumo',
+            menu_order_empty: 'Ainda não escolheu nenhum prato.',
+            menu_order_sending: 'A enviar…',
+            menu_order_note: 'Sem registo. O pedido entra directamente na cozinha.',
             rev_eyebrow: 'Avaliações', rev_title: 'Quem se senta à nossa mesa',
             rev_sub: 'Opiniões reais de quem já provou a nossa cozinha.',
             rev_count: 'Baseado em {n} avaliações', rev_cta: 'Deixar avaliação',
@@ -740,7 +990,7 @@
             rev_form_rating: 'Classificação', rev_form_name: 'O seu nome',
             rev_form_name_ph: 'Nome', rev_form_comment: 'O seu comentário',
             rev_form_comment_ph: 'Conte-nos como foi a sua experiência…',
-            rev_form_note: 'O comentário será publicado após aprovação da equipa.',
+            rev_form_note: 'A sua avaliação será publicada imediatamente no site.',
             rev_form_submit: 'Enviar avaliação',
             contact_tagline: 'Cozinha de autor no centro do Porto. Almoço, jantar e brunch de domingo. Reservas para grupos e eventos privados.',
             contact_order: 'Pedir agora', contact_address: 'Morada',
@@ -779,6 +1029,17 @@
             menu_sub: 'Order directly, no account needed. Takeaway or dine in.',
             menu_all: 'All', menu_search: 'Search a dish…', menu_add: 'Add',
             menu_chef: "Chef's recommendation", menu_new: 'New',
+            menu_full_link: 'View full menu and order',
+            menu_page_eyebrow: 'Menu',
+            menu_page_title: 'Choose at the table,<br><em>we bring it over.</em>',
+            menu_page_sub: 'Seasonal produce, family recipes and clear prices. Pick your dishes, adjust the quantities and place your order in under a minute.',
+            menu_page_hours: 'Mon–Sat · 12pm–11pm',
+            menu_page_takeaway: 'Takeaway in ~20 min',
+            menu_page_dinein: 'Dine in',
+            menu_order_eyebrow: 'Your order', menu_order_title: 'Summary',
+            menu_order_empty: 'You have not chosen any dish yet.',
+            menu_order_sending: 'Sending…',
+            menu_order_note: 'No account needed. Your order goes straight to the kitchen.',
             rev_eyebrow: 'Reviews', rev_title: 'People at our table',
             rev_sub: 'Honest words from guests who have tasted our cooking.',
             rev_count: 'Based on {n} reviews', rev_cta: 'Leave a review',
@@ -788,7 +1049,7 @@
             rev_form_rating: 'Rating', rev_form_name: 'Your name',
             rev_form_name_ph: 'Name', rev_form_comment: 'Your comment',
             rev_form_comment_ph: 'Tell us about your experience…',
-            rev_form_note: 'Your comment will be published after approval by our team.',
+            rev_form_note: 'Your review will be published on the site immediately.',
             rev_form_submit: 'Send review',
             contact_tagline: 'Signature cuisine in the centre of Porto. Lunch, dinner and Sunday brunch. Reservations for groups and private events.',
             contact_order: 'Order now', contact_address: 'Address',
@@ -836,6 +1097,12 @@
             if (txt) el.setAttribute('placeholder', txt);
         });
 
+        /* Textos bilingues da ementa (nome/descrição de cada prato) */
+        document.querySelectorAll('[data-pt][data-en]').forEach(function (el) {
+            const txt = lang === 'en' ? el.getAttribute('data-en') : el.getAttribute('data-pt');
+            if (txt !== null) el.textContent = txt;
+        });
+
         /* Categorias da ementa (nomes vindos da BD) */
         const cats = (I18N[lang] && I18N[lang].cats) || {};
         document.querySelectorAll('[data-cat-nome]').forEach(function (el) {
@@ -845,6 +1112,16 @@
 
         /* Opções de mesa do carrinho */
         document.querySelectorAll('#mesaPublica option').forEach(function (op) {
+            const n = op.getAttribute('data-mesa');
+            const l = op.getAttribute('data-lugares');
+            if (!n) return;
+            op.textContent = lang === 'en'
+                ? 'Table ' + n + ' · ' + l + ' seats'
+                : 'Mesa ' + n + ' · ' + l + ' lugares';
+        });
+
+        /* Opções de mesa do resumo em menu.php */
+        document.querySelectorAll('#menuMesa option').forEach(function (op) {
             const n = op.getAttribute('data-mesa');
             const l = op.getAttribute('data-lugares');
             if (!n) return;
@@ -866,6 +1143,11 @@
         });
 
         try { localStorage.setItem('saborproLang', lang); } catch (e) { /* sem localStorage */ }
+
+        /* Se existir um resumo de pedido em menu.php, redesenha os nomes */
+        if (typeof window.saborproAtualizarMenu === 'function') {
+            window.saborproAtualizarMenu();
+        }
     }
 
     function initIdioma() {
@@ -881,6 +1163,77 @@
     }
 
     /* ---------------------- FORMULÁRIO DE AVALIAÇÃO -------------- */
+
+    function estrelasHTML(nota, tamanho) {
+        const tam = tamanho || 15;
+        const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="' + tam + '" height="' + tam + '">'
+            + '<path d="m12 2.6 2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.5l-5.9 3.1 1.2-6.5L2.5 9.5l6.6-.9Z"/></svg>';
+        const pct = (Math.max(0, Math.min(5, nota)) / 5) * 100;
+        const rotulo = nota.toFixed(1).replace('.', ',');
+        return '<span class="estrelas" style="--nota:' + pct + '%" role="img" aria-label="'
+            + rotulo + ' de 5 estrelas">'
+            + '<span class="estrelas-fundo" aria-hidden="true">' + svg.repeat(5) + '</span>'
+            + '<span class="estrelas-ouro" aria-hidden="true">' + svg.repeat(5) + '</span>'
+            + '</span>';
+    }
+
+    function publicarAvaliacao(a) {
+        const grelha = document.getElementById('grelhaAvaliacoes');
+        if (!grelha || !a) return;
+
+        const vazio = document.getElementById('avaliacoesVazio');
+        if (vazio) vazio.classList.add('d-none');
+
+        const data = new Date();
+        const dataFmt = String(data.getDate()).padStart(2, '0') + '/'
+            + String(data.getMonth() + 1).padStart(2, '0') + '/' + data.getFullYear();
+
+        const artigo = document.createElement('article');
+        artigo.className = 'avaliacao-cartao';
+        artigo.style.animationDelay = '0s';
+        artigo.innerHTML =
+            '<div class="avaliacao-topo">' + estrelasHTML(Number(a.classificacao) || 5, 15) +
+                '<span class="pequeno texto-3"></span>' +
+            '</div>' +
+            '<p class="avaliacao-texto"></p>' +
+            '<div class="avaliacao-autor">' +
+                '<span class="avaliacao-avatar"></span>' +
+                '<div><strong></strong><span data-i18n="rev_verified">Cliente verificado</span></div>' +
+            '</div>';
+
+        artigo.querySelector('.pequeno').textContent = dataFmt;
+        artigo.querySelector('.avaliacao-texto').textContent = '“' + a.comentario + '”';
+        artigo.querySelector('.avaliacao-avatar').textContent =
+            (a.nome_cliente || '?').trim().charAt(0).toUpperCase();
+        artigo.querySelector('.avaliacao-autor strong').textContent = a.nome_cliente || '';
+        grelha.prepend(artigo);
+
+        /* Atualiza a média e o contador no cabeçalho da secção */
+        const resumo = document.querySelector('.avaliacoes-resumo');
+        if (resumo) {
+            const totalAntigo = parseInt(resumo.getAttribute('data-total') || '0', 10);
+            const mediaAntiga = parseFloat(resumo.getAttribute('data-media') || '0');
+            const novoTotal = totalAntigo + 1;
+            const novaMedia = ((mediaAntiga * totalAntigo) + (Number(a.classificacao) || 5)) / novoTotal;
+
+            resumo.setAttribute('data-total', String(novoTotal));
+            resumo.setAttribute('data-media', String(novaMedia));
+
+            const notaEl = resumo.querySelector('.nota-media');
+            if (notaEl) {
+                notaEl.textContent = novaMedia.toFixed(1).replace('.', ',');
+            }
+            const estrelasEl = resumo.querySelector('.estrelas');
+            if (estrelasEl) {
+                estrelasEl.outerHTML = estrelasHTML(novaMedia, 19);
+            }
+            const contador = resumo.querySelector('[data-i18n="rev_count"]');
+            if (contador) contador.setAttribute('data-n', String(novoTotal));
+        }
+
+        /* Garante que o novo cartão respeita o idioma ativo */
+        aplicarIdioma(idiomaAtual);
+    }
 
     function initAvaliacao() {
         const form = document.getElementById('formAvaliacao');
@@ -958,6 +1311,7 @@
                 window.saborproFecharModal('modalAvaliacao');
                 form.reset();
                 pintar(notaAtual());
+                publicarAvaliacao(res.avaliacao);
                 if (window.saborproToast) window.saborproToast(res.mensagem || 'Obrigado pela sua avaliação.');
             })
             .catch(function () {
@@ -978,6 +1332,7 @@
         initFiltro();
         initCarrinho();
         initCarrinhoPublico();
+        initMenuPedido();
         initFiltroPublico();
         initAvaliacao();
         initImagensFallback();

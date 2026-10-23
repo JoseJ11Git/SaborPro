@@ -143,6 +143,8 @@ function saborpro_migrar(mysqli $bd): void
             'etiquetas'  => "ADD COLUMN etiquetas VARCHAR(120) DEFAULT NULL AFTER disponivel",
             'destaque'   => 'ADD COLUMN destaque TINYINT(1) NOT NULL DEFAULT 0 AFTER etiquetas',
             'imagem_url' => 'ADD COLUMN imagem_url VARCHAR(500) DEFAULT NULL AFTER destaque',
+            'nome_en'    => 'ADD COLUMN nome_en VARCHAR(120) DEFAULT NULL AFTER nome',
+            'descricao_en' => 'ADD COLUMN descricao_en VARCHAR(255) DEFAULT NULL AFTER descricao',
         ],
         'pedidos' => [
             'tipo_pedido'       => "ADD COLUMN tipo_pedido ENUM('Takeaway','Na Mesa') NOT NULL DEFAULT 'Na Mesa' AFTER estado",

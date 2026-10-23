@@ -7,7 +7,7 @@ A aplicação está dividida em **duas áreas com linguagens visuais distintas**
 
 | Área | Ficheiros | Tema | Acesso |
 |---|---|---|---|
-| 🍷 **Site público do restaurante** | `index.php` | Claro de luxo — creme `#FAFAF9`, dourado `#D97706`, vinho `#991B1B` | Livre — encomendas sem registo |
+| 🍷 **Site público do restaurante** | `index.php`, `menu.php` | Claro de luxo — creme `#FAFAF9`, dourado `#D97706`, vinho `#991B1B` | Livre — encomendas sem registo |
 | 🖥️ **Portal de gestão** | `gestao.php`, `dashboard.php`, `mesas.php`, `ementa.php`, `pedidos.php`, `cozinha.php` | Técnico claro — `#F1F5F9`, cartões brancos, sombras finas | Sessão autenticada |
 
 ---
@@ -19,9 +19,10 @@ SaborPro/
 ├── base_dados.sql            # BD (utf8mb4) + 12 pratos + pedidos e avaliações de demonstração
 ├── ligacao.php               # MySQLi + sessão + helpers UTF-8 + migração idempotente
 ├── index.php                 # SITE PÚBLICO: hero, história, ementa, avaliações, carrinho, PT/EN
+├── menu.php                  # EMENTA DEDICADA (PT/EN) + pedido integrado (mesa ou takeaway)
 ├── gestao.php                # PORTAL: login + painel de operações
 ├── dashboard.php             # Atalho para o painel (mesmo conteúdo)
-├── mesas.php                 # PLANTA DE SALA 2D — desenho SVG de mesas, cadeiras e balcão
+├── mesas.php                 # VISTA ÚNICA "MESAS" — mesas de madeira, número e estado
 ├── ementa.php                # CRUD de itens/categorias, etiquetas, destaque e fotografia
 ├── pedidos.php               # POS interno (serviço de mesa)
 ├── cozinha.php               # KDS — ecrã da cozinha com avanço de estado em 1 clique
@@ -30,7 +31,7 @@ SaborPro/
 ├── api/
 │   ├── pedido.php            # Registo de pedidos do POS interno
 │   ├── mesa.php              # Planta 2D: detalhe, adicionar item, fechar conta, mudar estado
-│   ├── avaliacao.php         # Submissão pública de avaliações (entra pendente de moderação)
+│   ├── avaliacao.php         # Submissão pública de avaliações (publicada imediatamente)
 │   ├── avaliacao_admin.php   # Moderação: publicar/ocultar e eliminar avaliações (sessão admin)
 │   └── ementa_rapida.php     # Edição rápida de preço/stock (JSON, usada no painel)
 ├── includes/
@@ -67,11 +68,19 @@ com sombra de 1 px.
 - **Ementa digital** — cartões com fotografia real (Unsplash), preço sobre a imagem,
   selo *Recomendação do Chef*, etiquetas (`Vegetariano`, `Novidade`, `Sem Glúten`, `Picante`).
   Filtros por categoria e pesquisa em tempo real.
-- **Avaliações moderadas** — média em estrelas (ex.: `4,8/5`), cartões de testemunhos e
-  modal para o cliente deixar nome, 1–5 estrelas e comentário. A avaliação é gravada com
-  `visivel = 0` e só aparece no site depois de aprovada na gestão.
+- **Página de ementa dedicada (`menu.php`)** — vista limpa e focada no cliente, com lista de
+  pratos, procura, filtros por categoria e um resumo de pedido sempre à vista:
+  - quantidades ajustáveis directamente em cada prato (stepper `− 0 +`);
+  - **Na Mesa** (escolha do número da mesa) ou **Takeaway**;
+  - nome, telefone e observações, totais e envio imediato para a cozinha;
+  - nomes e descrições dos pratos totalmente bilingues (PT/EN), guardados em
+    `ementa.nome_en` / `ementa.descricao_en`.
+- **Avaliações publicadas de imediato** — média em estrelas (ex.: `4,8/5`), cartões de testemunhos
+  e modal para o cliente deixar nome, 1–5 estrelas e comentário. A avaliação é gravada com
+  `visivel = 1`, aparece **no topo da lista em tempo real** (sem recarregar) e actualiza a média
+  e o contador; a equipa pode ocultá-la ou eliminá-la depois na gestão.
 - **Seletor de idioma PT | EN** no cabeçalho (JavaScript + `localStorage`), traduzindo as
-  frases principais do site (navegação, hero, história, ementa, avaliações, contacto e carrinho).
+  frases principais do site e, na ementa, também os **nomes e descrições de todos os pratos**.
 - **Carrinho flutuante** (gaveta lateral) **sem login**:
   - Takeaway ou Na Mesa (com número da mesa);
   - nome, telefone e observações;
@@ -97,13 +106,14 @@ As fotografias dos pratos vêm da coluna `ementa.imagem_url`. Se uma imagem falh
     publicar/ocultar e eliminar, via `api/avaliacao_admin.php` (JSON);
   - fluxo de pedidos por estado e últimas vendas;
   - actualização automática a cada 90 s, suspensa enquanto edita um campo ou tem um modal aberto.
-- `mesas.php` — **planta de sala 2D realista**:
-  - chão de madeira em gradientes CSS e zonas fixas (cozinha, varanda, entrada);
-  - **mesas redondas com 2/4/6 cadeiras** e **mesas retangulares/familiares** com cadeiras nos dois lados,
-    desenhadas em SVG com tampo, aro, veios e sombra;
-  - **balcão com 4 bancos de bar** desenhado em SVG;
-  - cores por estado: **Livre** (verde), **Ocupada** (vermelho, com pulsação e tempo decorrido),
-    **Reservada** (dourado); total activo visível sobre a mesa;
+- `mesas.php` — **vista única "Mesas"**, limpa e minimalista:
+  - fundo branco `#FFFFFF` com grelha de pontos muito subtil e sem divisões de zona
+    (foram removidas a varanda, o terraço, a cozinha, a entrada e o balcão);
+  - **mesas de madeira** desenhadas em SVG (gradiente + veios) com o **número bem visível**
+    ao centro e as cadeiras em tons de madeira;
+  - **indicador circular de estado** junto a cada mesa: 🟢 verde *Livre*, 🔴 vermelho *Ocupada*
+    (com pulsação) e 🟡 âmbar *Reservada*;
+  - total activo sobre a mesa quando existe conta aberta;
   - clique abre a conta, permite adicionar pratos, alterar estado ou **fechar conta**.
 - `ementa.php` — CRUD completo com fotografia (URL + pré-visualização), etiquetas e destaque.
 - `pedidos.php` — POS interno com filtro de categorias e carrinho.
@@ -125,10 +135,11 @@ As fotografias dos pratos vêm da coluna `ementa.imagem_url`. Se uma imagem falh
 ### Migração automática
 
 `ligacao.php` executa uma migração **idempotente** que acrescenta colunas novas
-(`ementa.etiquetas`, `ementa.destaque`, `ementa.imagem_url`, `pedidos.tipo_pedido`,
-`pedidos.cliente_nome`, `pedidos.cliente_telefone`, `pedidos.observacoes`), cria a tabela
-`avaliacoes` (se ainda não existir) e a mesa `Balcão` (nº 0). Bases de dados antigas
-continuam a funcionar.
+(`ementa.etiquetas`, `ementa.destaque`, `ementa.imagem_url`, `ementa.nome_en`,
+`ementa.descricao_en`, `pedidos.tipo_pedido`, `pedidos.cliente_nome`,
+`pedidos.cliente_telefone`, `pedidos.observacoes`), cria a tabela `avaliacoes`
+(se ainda não existir) e a mesa `Balcão` (nº 0). Bases de dados antigas continuam a funcionar;
+se as colunas inglesas estiverem vazias, o site mostra o texto português como fallback.
 
 ## 6. Conta de demonstração
 
@@ -158,5 +169,9 @@ Também pode forçar via `SABORPRO_DB_HOST`, `SABORPRO_DB_USER`, `SABORPRO_DB_PA
   Todas as URLs do seed foram verificadas (`HTTP 200`, `image/jpeg`).
 - O pedido público é gravado na tabela `pedidos` com `tipo_pedido = 'Takeaway' | 'Na Mesa'`
   e aparece imediatamente no painel e no ecrã da cozinha.
-- As avaliações públicas têm honeypot anti-spam e um limite de 45 s por sessão; ficam
-  pendentes até aprovação no portal de gestão.
+- As avaliações públicas têm honeypot anti-spam e um limite de 45 s por sessão; são **publicadas
+  imediatamente** com `visivel = 1` e podem ser ocultadas ou eliminadas na moderação do portal.
+- O pedido da página `menu.php` usa o mesmo endpoint `pedidos_publicos.php`; os preços são
+  recalculados no servidor e o pedido entra na cozinha como `Pendente`.
+- `base_dados.sql` inclui as colunas `ementa.nome_en` / `ementa.descricao_en` já preenchidas
+  para os 12 pratos de demonstração.

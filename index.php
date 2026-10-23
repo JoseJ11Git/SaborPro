@@ -89,7 +89,7 @@ $fotoCozinha  = 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=100
         <nav class="nav-links" id="navLinks">
             <a href="#inicio" class="ativo" data-i18n="nav_home">Início</a>
             <a href="#historia" data-i18n="nav_story">A Nossa História</a>
-            <a href="#ementa" data-i18n="nav_menu">Ementa</a>
+            <a href="menu.php" data-i18n="nav_menu">Ementa</a>
             <a href="#avaliacoes" data-i18n="nav_reviews">Avaliações</a>
             <a href="#contacto" data-i18n="nav_contact">Contacto</a>
         </nav>
@@ -127,7 +127,7 @@ $fotoCozinha  = 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=100
                 </p>
 
                 <div class="hero-acoes">
-                    <a href="#ementa" class="btn btn-primario">
+                    <a href="menu.php" class="btn btn-primario">
                         <?= icone('carrinho-mais') ?> <span data-i18n="hero_btn_menu">Explorar Ementa</span>
                     </a>
                     <a href="#historia" class="btn btn-fantasma">
@@ -289,6 +289,12 @@ $fotoCozinha  = 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=100
                     </article>
                 <?php endforeach; ?>
             </div>
+
+            <div class="texto-centro mt-3">
+                <a href="menu.php" class="btn btn-fantasma">
+                    <?= icone('seta-direita', '', 15) ?> <span data-i18n="menu_full_link">Ver ementa completa e pedir</span>
+                </a>
+            </div>
         </div>
     </section>
 
@@ -302,7 +308,9 @@ $fotoCozinha  = 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=100
                     <p data-i18n="rev_sub">Opiniões reais de quem já provou a nossa cozinha.</p>
                 </div>
 
-                <div class="avaliacoes-resumo">
+                <div class="avaliacoes-resumo"
+                     data-media="<?= $notaMedia ?>"
+                     data-total="<?= $totalAvaliacoes ?>">
                     <span class="nota-media"><?= $notaTexto ?></span>
                     <span class="nota-max">/5</span>
                     <?= estrelas($notaMedia, 19) ?>
@@ -312,28 +320,28 @@ $fotoCozinha  = 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=100
                 </div>
             </div>
 
-            <?php if (!$avaliacoes): ?>
-                <div class="vazio" data-i18n="rev_empty">Seja o primeiro a avaliar a nossa cozinha.</div>
-            <?php else: ?>
-                <div class="grelha g-auto avaliacoes-grelha">
-                    <?php foreach ($avaliacoes as $i => $a): ?>
-                        <article class="avaliacao-cartao" style="animation-delay:<?= $i * 0.06 ?>s">
-                            <div class="avaliacao-topo">
-                                <?= estrelas((float) $a['classificacao'], 15) ?>
-                                <span class="pequeno texto-3"><?= date('d/m/Y', strtotime((string) $a['criado_em'])) ?></span>
+            <div class="vazio<?= $avaliacoes ? ' d-none' : '' ?>" id="avaliacoesVazio" data-i18n="rev_empty">
+                Seja o primeiro a avaliar a nossa cozinha.
+            </div>
+
+            <div class="grelha g-auto avaliacoes-grelha" id="grelhaAvaliacoes">
+                <?php foreach ($avaliacoes as $i => $a): ?>
+                    <article class="avaliacao-cartao" style="animation-delay:<?= $i * 0.06 ?>s">
+                        <div class="avaliacao-topo">
+                            <?= estrelas((float) $a['classificacao'], 15) ?>
+                            <span class="pequeno texto-3"><?= date('d/m/Y', strtotime((string) $a['criado_em'])) ?></span>
+                        </div>
+                        <p class="avaliacao-texto">“<?= e($a['comentario']) ?>”</p>
+                        <div class="avaliacao-autor">
+                            <span class="avaliacao-avatar"><?= e(mb_strtoupper(mb_substr((string) $a['nome_cliente'], 0, 1))) ?></span>
+                            <div>
+                                <strong><?= e($a['nome_cliente']) ?></strong>
+                                <span data-i18n="rev_verified">Cliente verificado</span>
                             </div>
-                            <p class="avaliacao-texto">“<?= e($a['comentario']) ?>”</p>
-                            <div class="avaliacao-autor">
-                                <span class="avaliacao-avatar"><?= e(mb_strtoupper(mb_substr((string) $a['nome_cliente'], 0, 1))) ?></span>
-                                <div>
-                                    <strong><?= e($a['nome_cliente']) ?></strong>
-                                    <span data-i18n="rev_verified">Cliente verificado</span>
-                                </div>
-                            </div>
-                        </article>
-                    <?php endforeach; ?>
-                </div>
-            <?php endif; ?>
+                        </div>
+                    </article>
+                <?php endforeach; ?>
+            </div>
 
             <div class="texto-centro mt-3">
                 <button type="button" class="btn btn-primario btn-lg" data-modal-abrir="modalAvaliacao">
@@ -352,7 +360,7 @@ $fotoCozinha  = 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=100
                     Cozinha de autor no centro do Porto. Almoço, jantar e brunch de domingo.
                     Reservas para grupos e eventos privados.
                 </p>
-                <a href="#ementa" class="btn btn-primario btn-sm mt-1">
+                <a href="menu.php" class="btn btn-primario btn-sm mt-1">
                     <?= icone('carrinho-mais', '', 14) ?> <span data-i18n="contact_order">Pedir agora</span>
                 </a>
             </div>
@@ -515,7 +523,7 @@ $fotoCozinha  = 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=100
                 <span data-i18n="rev_form_comment">O seu comentário</span>
                 <textarea id="avaliacaoComentario" maxlength="500" rows="4" required
                           placeholder="Conte-nos como foi a sua experiência…" data-i18n-placeholder="rev_form_comment_ph"></textarea>
-                <small class="texto-3" data-i18n="rev_form_note">O comentário será publicado após aprovação da equipa.</small>
+                <small class="texto-3" data-i18n="rev_form_note">A sua avaliação será publicada imediatamente no site.</small>
             </label>
 
             <!-- Honeypot anti-spam (invisível) -->
